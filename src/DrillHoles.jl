@@ -1,5 +1,17 @@
 module DrillHoles
 
-# Write your package code here.
+using CSV
+using DataFrames
+
+include("desurvey.jl")
+include("mergetables.jl")
+include("compositing.jl")
+
+"""
+export
+    f1,
+    f2,
+    f3
+"""
 
 end

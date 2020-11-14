@@ -4,5 +4,5 @@ function composite(dh::DrillHole,interval::Number=1.0;
 
   # do compositing
 
-  DrillHole(dh.collar,dh.survey,dh.table,dh.trace,comps)
+  DrillHole(dh.trace,comps)
 end

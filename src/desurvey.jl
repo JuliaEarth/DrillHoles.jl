@@ -52,7 +52,7 @@ function getcolnames(s,i)
 end
 
 function gettrace(c, s)
-	collar, survey = CSV.read(c.file), CSV.read(s.file)
+	collar, survey = CSV.read(c.file, DataFrame), CSV.read(s.file, DataFrame)
 	n1 = (c.x,c.y,c.z,c.holeid)
 	n2 = (:X,:Y,:Z,s.holeid)
 	namepairs = [a=>b for (a,b) in zip(Symbol.(n1),Symbol.(n2)) if a!=b]

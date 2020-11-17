@@ -4,7 +4,7 @@ function mergetables(intervals, codes)
     bh, from, to = codes.holeid, codes.from, codes.to
 
     tabs = intervals isa IntervalTable ? [intervals] : intervals
-    dfs = [CSV.read(f.file) for f in tabs]
+    dfs = [CSV.read(f.file, DataFrame) for f in tabs]
 
     for i in 1:length(dfs)
         t = tabs[i]

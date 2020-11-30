@@ -14,20 +14,20 @@ function mergetables(intervals, codes)
     # get all possible intervals
     hcols = [bh,from,to]
     dfx = vcat(map(x->select(x,hcols),dfs)..., cols=:union)
-    dfx = unique(vcat(dfx[[bh,from]],rename(dfx[[bh,to]], to => from), cols=:union))
+    dfx = unique(vcat(select(dfx,[bh,from]),rename(select(dfx,[bh,to]), to => from), cols=:union))
     sort!(dfx, [bh, from])
     shift = collect(2:size(dfx,1))
     push!(shift,1) # check if works for every case
-    dfx[to] = dfx[shift,from]
-    dfx[:CHK] = dfx[shift,bh]
-    dfx = dfx[(dfx[to] .> dfx[from]) .& (dfx[bh] .== dfx[:CHK]),[bh,from,to]]
-    dfx[:LENGTH] = dfx[to]-dfx[from]
+    dfx[!,to] = dfx[shift,from]
+    dfx[!,:CHK] = dfx[shift,bh]
+    dfx = dfx[(dfx[!,to] .> dfx[!,from]) .& (dfx[!,bh] .== dfx[!,:CHK]),[bh,from,to]]
+    dfx[!,:LENGTH] = dfx[!,to] - dfx[!,from]
 
     # add table values
     cols = []
     for i in 1:length(dfs)
         push!(cols,setdiff(names(dfs[i]),string.(hcols)))
-        dfs[i]["_LEN$i"] = dfs[i][to]-dfs[i][from]
+        dfs[i][!,"_LEN$i"] = dfs[i][!,to]-dfs[i][!,from]
         dfx = leftjoin(dfx,select(dfs[i], Not(to)),on=[bh,from],makeunique=true)
     end
 

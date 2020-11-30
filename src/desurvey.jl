@@ -30,6 +30,7 @@ Intervals = Union{IntervalTable,AbstractArray{IntervalTable}}
 struct DrillHole
 	trace::DataFrame # georef later to PointSet or something else
 	table::DataFrame # georef later to PointSet or something else
+	codes::NamedTuple
 end
 
 
@@ -41,7 +42,7 @@ function drillhole(collar::Collar,survey::Survey,intervals::Intervals)
 	table = mergetables(intervals, codes)
 	fillxyz!(table, trace, codes)
 
-	DrillHole(trace,table)
+	DrillHole(trace,table,codes)
 end
 
 function getcolnames(s,i)
@@ -57,7 +58,7 @@ function gettrace(c, s)
 	n2 = (:X,:Y,:Z,s.holeid)
 	namepairs = [a=>b for (a,b) in zip(Symbol.(n1),Symbol.(n2)) if a!=b]
 	rename!(collar, namepairs...)
-	collar[s.at] = 0.0
+	collar[!,s.at] .= 0.0
 
 	s.invertdip && (survey[s.dip] *= -1)
 
@@ -131,17 +132,17 @@ end
 function fillxyz!(dfx, dfh, codes)
 	bh, at, az, dp = codes.holeid, codes.at, codes.azm, codes.dip
 	from, to = codes.from, codes.to
-	dfx[:X] = -9999.9999
-	dfx[:Y] = -9999.9999
-	dfx[:Z] = -9999.9999
+	dfx[!,:X] .= -9999.9999
+	dfx[!,:Y] .= -9999.9999
+	dfx[!,:Z] .= -9999.9999
 
 	lastbhid = dfx[1,bh]
-	dfb = dfh[(dfh[bh] .== lastbhid),:]
+	dfb = dfh[(dfh[!,bh] .== lastbhid),:]
 
 	for i in 1:size(dfx,1)
 
 		bhid, atx = dfx[i,bh], dfx[i,from]+dfx[i,:LENGTH]/2
-		bhid != lastbhid && (dfb = dfh[(dfh[bh] .== bhid),:])
+		bhid != lastbhid && (dfb = dfh[(dfh[!,bh] .== bhid),:])
 		lastbhid = bhid
 
 		size(dfb,1)==0 && continue # alert bhid with no survey

@@ -5,8 +5,9 @@ using DataFrames
 using StatsBase:mean,weights
 
 include("desurvey.jl")
+include("validations.jl")
 include("mergetables.jl")
-include("compositing.jl")]
+include("compositing.jl")
 
 export
     Collar,

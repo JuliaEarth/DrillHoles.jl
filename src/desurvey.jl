@@ -1,7 +1,7 @@
 
 
 Base.@kwdef struct Collar
-	file::String
+	file::Union{String,AbstractDataFrame}
 	holeid::Union{String,Symbol} = :HOLEID
 	x::Union{String,Symbol} = :X
 	y::Union{String,Symbol} = :Y
@@ -10,7 +10,7 @@ Base.@kwdef struct Collar
 end
 
 Base.@kwdef struct Survey
-	file::String
+	file::Union{String,AbstractDataFrame}
 	holeid::Union{String,Symbol} = :HOLEID
 	at::Union{String,Symbol} = :AT
 	azm::Union{String,Symbol} = :AZM
@@ -19,7 +19,7 @@ Base.@kwdef struct Survey
 end
 
 Base.@kwdef struct IntervalTable
-	file::String
+	file::Union{String,AbstractDataFrame}
 	holeid::Union{String,Symbol} = :HOLEID
 	from::Union{String,Symbol} = :FROM
 	to::Union{String,Symbol} = :TO
@@ -28,14 +28,16 @@ end
 Intervals = Union{IntervalTable,AbstractArray{IntervalTable}}
 
 struct DrillHole
-	trace::DataFrame # georef later to PointSet or something else
-	table::DataFrame # georef later to PointSet or something else
+	trace::AbstractDataFrame # georef later to PointSet or something else
+	table::AbstractDataFrame # georef later to PointSet or something else
 	codes::NamedTuple
 end
 
 
 function drillhole(collar::Collar,survey::Survey,intervals::Intervals)
 	codes = getcolnames(survey,intervals)
+	summary = validations(collar, survey, intervals)
+	in("Error",summary[:,:TYPE]) && throw(ErrorException("errors with the data; summary below\n$summary"))
 	trace = gettrace(collar, survey)
 	fillxyz!(trace, codes)
 
@@ -53,7 +55,8 @@ function getcolnames(s,i)
 end
 
 function gettrace(c, s)
-	collar, survey = CSV.read(c.file, DataFrame), CSV.read(s.file, DataFrame)
+	collar = c.file isa String ? CSV.read(c.file, DataFrame) : c.file
+	survey = s.file isa String ? CSV.read(s.file, DataFrame) : s.file
 	n1 = (c.x,c.y,c.z,c.holeid)
 	n2 = (:X,:Y,:Z,s.holeid)
 	namepairs = [a=>b for (a,b) in zip(Symbol.(n1),Symbol.(n2)) if a!=b]
@@ -64,7 +67,7 @@ function gettrace(c, s)
 
 	dfh = leftjoin(survey,collar,on=[s.holeid,s.at])
 	sort!(dfh, [s.holeid,s.at])
-	dfh
+	dropmissing!(dfh, :X)
 end
 
 

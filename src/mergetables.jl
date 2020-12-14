@@ -1,7 +1,7 @@
 
 
-function mergetables(intervals, codes)
-    bh, from, to = codes.holeid, codes.from, codes.to
+function mergetables(intervals, pars)
+    bh, from, to = pars.holeid, pars.from, pars.to
 
     tabs = intervals isa IntervalTable ? [intervals] : intervals
     dfs = [f.file isa String ? CSV.read(f.file, DataFrame) : f.file for f in tabs]

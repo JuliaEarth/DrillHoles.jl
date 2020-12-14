@@ -1,20 +1,35 @@
 
 """
-nan = :zero or skip
-gaps = 0
-mincomp
-interval
-aim = :equalcomp or :nodiscard
-density weighted?
-core recovery?
-"""
+  composite(dh::DrillHole; interval=1.0, zone=nothing, mode=:equalcomp,
+  mincomp=0.5, gap=0.001)
 
+Composite a drill hole object considering the given parameters. Outputs a
+new composited `DrillHole` object.
+
+## Parameters:
+
+* `dh`       - desurveyed drill hole
+* `interval` - composite length
+* `zone`     - zone column name; if considered, intervals composited together
+  must have the same zone value
+* `mode`     - method for compositing (see below the options available)
+* `mincomp`  - minimum composite lenght; smaller intervals are discarded.
+* `gap`      - two intervals are not composited together if the spacing between
+  them exceeds the `gap` value
+
+## Methods:
+
+* `:equalcomp` - seeks to create composites with the exact `interval` length;
+  borders are discarded if have length below `mincomp`. Max composite length = `interval`
+* `:nodiscard` - composite lengths are defined seeking to include all possible
+  intervals with length above `mincomp`. Max composite length = 1.5*`interval`
+"""
 function composite(dhf::DrillHole; interval::Number=1.0,
-  zone=nothing, gap=0.001, mincomp=0.5, aim=:equalcomp)
+  zone=nothing, mode=:equalcomp, mincomp=0.5, gap=0.001)
 
   dh = copy(dhf.table)
-  codes = dhf.codes
-  bh, from, to = codes.holeid, codes.from, codes.to
+  pars = dhf.pars
+  bh, from, to = pars.holeid, pars.from, pars.to
 
   # get groups to composite
   gps = []; c = 1
@@ -44,7 +59,7 @@ function composite(dhf::DrillHole; interval::Number=1.0,
   	len < mincomp && continue
     dfa = DataFrame()
 
-    if aim == :nodiscard
+    if mode == :nodiscard
       div = len/interval
       if div <= 1 || isinteger(div)
         nbint = ceil(Int,div)
@@ -52,6 +67,7 @@ function composite(dhf::DrillHole; interval::Number=1.0,
         prenbint = [floor(Int,div), ceil(Int,div)]
         closest = argmin([abs(interval-len/x) for x in prenbint])
         nbint = prenbint[closest]
+        closest ==1 && len/nbint < mincomp && (nbint = prenbint[2])
       end
 
       intlen = nbint > 1 ? len/nbint : len
@@ -109,6 +125,6 @@ function composite(dhf::DrillHole; interval::Number=1.0,
     comps = vcat(comps, dfa, cols=:union)
   end
 
-  fillxyz!(comps, dhf.trace, codes)
-  DrillHole(dhf.trace,comps,codes)
+  fillxyz!(comps, dhf.trace, pars)
+  DrillHole(comps, dhf.trace, pars, dhf.warns)
 end

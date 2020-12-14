@@ -1,14 +1,26 @@
+"""
+    Collar(file, holeid=:HOLEID, x=:X, y=:Y ,z=:Z, enddepth=nothing)
 
-
+The definition of the drill hole collar table and its main column fields.
+`file` can be a `String` filepath or an already loaded `AbstractDataFrame`.
+"""
 Base.@kwdef struct Collar
 	file::Union{String,AbstractDataFrame}
 	holeid::Union{String,Symbol} = :HOLEID
 	x::Union{String,Symbol} = :X
 	y::Union{String,Symbol} = :Y
 	z::Union{String,Symbol} = :Z
-	enddepth::Union{String,Symbol} = nothing
+	enddepth::Union{String,Symbol,Nothing} = nothing
 end
 
+"""
+    Survey(file, holeid=:HOLEID, at=:AT, azm=:AZM ,dip=:DIP, invertdip=false)
+
+The definition of the drill hole survey table and its main column fields.
+`file` can be a `String` filepath or an already loaded `AbstractDataFrame`.
+Negative dip points downwards (or upwards if `invertdip`=true). Available methods
+for desurvey are `:mincurv` (minimum curvature/spherical arc) and `:tangential`.
+"""
 Base.@kwdef struct Survey
 	file::Union{String,AbstractDataFrame}
 	holeid::Union{String,Symbol} = :HOLEID
@@ -16,8 +28,16 @@ Base.@kwdef struct Survey
 	azm::Union{String,Symbol} = :AZM
 	dip::Union{String,Symbol} = :DIP
 	invertdip::Bool = false
+	method::Symbol = :mincurv
 end
 
+"""
+    IntervalTable(file, holeid=:HOLEID, from=:FROM, to=:TO)
+
+The definition of one drill hole interval table and its main column fields.
+`file` can be a `String` filepath or an already loaded `AbstractDataFrame`.
+Examples of interval tables are lithological and assay tables.
+"""
 Base.@kwdef struct IntervalTable
 	file::Union{String,AbstractDataFrame}
 	holeid::Union{String,Symbol} = :HOLEID
@@ -27,30 +47,60 @@ end
 
 Intervals = Union{IntervalTable,AbstractArray{IntervalTable}}
 
+"""
+    DrillHole(table, trace, pars, warns)
+
+Drill hole object. `table` stores the desurveyed data. `trace` and `pars` store
+parameters for eventual post-processing or later drill hole compositing. `warns`
+report possible problems with input files.
+"""
 struct DrillHole
-	trace::AbstractDataFrame # georef later to PointSet or something else
 	table::AbstractDataFrame # georef later to PointSet or something else
-	codes::NamedTuple
+	trace::AbstractDataFrame
+	pars::NamedTuple
+	warns::AbstractDataFrame
+end
+
+Base.show(io::IO, dh::DrillHole) = print(io, "DrillHole")
+
+function Base.show(io::IO, ::MIME"text/plain", dh::DrillHole)
+	d = size(dh.table)
+	println(io,"DrillHole table with $(d[1]) intervals")
+	println(io,"- First 5 rows:")
+	println(io,first(dh.table,5))
+	cols = string(names(dh.table))
+	cols = replace(cols, "["=>"")
+	cols = replace(cols, "\""=>"")
+	cols = replace(cols, "]"=>"")
+	println(io,"- Column variables: $cols")
 end
 
 
+"""
+	drillhole(collar::Collar, survey::Survey, intervals::Intervals)
+
+Desurvey drill hole based on collar, survey and interval table(s) information.
+The intervals can be passed as a single `IntervalTable` or as an array of
+`IntervalTable`. Outputs a `DrillHole` object.
+"""
 function drillhole(collar::Collar,survey::Survey,intervals::Intervals)
-	codes = getcolnames(survey,intervals)
-	summary = validations(collar, survey, intervals)
-	in("Error",summary[:,:TYPE]) && throw(ErrorException("errors with the data; summary below\n$summary"))
+	pars = getcolnames(survey,intervals)
+	warns = validations(collar, survey, intervals)
+	in("Error",warns[:,:TYPE]) && throw(ErrorException("errors with the data; summary below\n$warns"))
 	trace = gettrace(collar, survey)
-	fillxyz!(trace, codes)
+	fillxyz!(trace, pars)
 
-	table = mergetables(intervals, codes)
-	fillxyz!(table, trace, codes)
+	table = mergetables(intervals, pars)
+	fillxyz!(table, trace, pars)
 
-	DrillHole(trace,table,codes)
+	DrillHole(table,trace,pars,warns)
 end
 
 function getcolnames(s,i)
 	f = i isa IntervalTable ? i.from : i[1].from
 	t = i isa IntervalTable ? i.to : i[1].to
-	codes = (holeid=s.holeid, at=s.at, azm=s.azm, dip=s.dip, from=f, to=t)
+	m = s.method == :tangential
+	pars = (holeid=s.holeid, at=s.at, azm=s.azm, dip=s.dip, from=f, to=t, tang=m)
 	# check duplicate names and inform (maybe also if there is a preexisting x y z length)
 end
 
@@ -117,14 +167,14 @@ function weightedangs(angs1,angs2,d12,d1x)
 end
 
 # fill xyz for dh trace files
-function fillxyz!(dfh, codes)
-	at, az, dp = codes.at, codes.azm, codes.dip
+function fillxyz!(dfh, pars)
+	at, az, dp, tang = pars.at, pars.azm, pars.dip, pars.tang
 	for i in 1:size(dfh,1)
         dfh[i,at] == 0 && continue
         d12 = dfh[i,at]-dfh[i-1,at]
         az1, dp1 = dfh[i-1,az], dfh[i-1,dp]
         az2, dp2 = dfh[i,az], dfh[i,dp]
-        dx,dy,dz = mincurv(az1, dp1, az2, dp2, d12)
+        dx,dy,dz = tang ? tangential(az1,dp1,d12) : mincurv(az1,dp1,az2,dp2,d12)
         dfh[i,:X] = dx + dfh[i-1,:X]
         dfh[i,:Y] = dy + dfh[i-1,:Y]
         dfh[i,:Z] = dz + dfh[i-1,:Z]
@@ -132,9 +182,9 @@ function fillxyz!(dfh, codes)
 end
 
 # fill xyz for dh from-to table file
-function fillxyz!(dfx, dfh, codes)
-	bh, at, az, dp = codes.holeid, codes.at, codes.azm, codes.dip
-	from, to = codes.from, codes.to
+function fillxyz!(dfx, dfh, pars)
+	bh, at, az, dp = pars.holeid, pars.at, pars.azm, pars.dip
+	from, to = pars.from, pars.to
 	dfx[!,:X] .= -9999.9999
 	dfx[!,:Y] .= -9999.9999
 	dfx[!,:Z] .= -9999.9999

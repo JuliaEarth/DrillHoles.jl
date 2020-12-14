@@ -11,6 +11,7 @@
 # intervals list of absent collars
 # list of numeric interval values; if not, check for alpha values in table
 
+need to improve output messages later
 """
 
 function validations(c::Collar, s::Survey, intervals::Intervals)
@@ -54,16 +55,17 @@ function validations(c::Collar, s::Survey, intervals::Intervals)
     outovl(rows) = "Overlaps in the row(s) $rows"
 
     # errors out
-    sum(nanc)>0 && push!(out,("Error",c.file,outnan(dfc,nanc)))
-    sum(nans)>0 && push!(out,("Error",s.file,outnan(dfs,nans)))
-    length(dupc)>0 && push!(out,("Error",c.file,outdup(dupc)))
-    length(dups)>0 && push!(out,("Error",s.file,outdup(dups)))
-    sum(typc)>0 && push!(out,("Error",c.file,outtyp(dfc,typc)))
-    sum(typs)>0 && push!(out,("Error",s.file,outtyp(dfs,typs)))
+    fname = Base.Filesystem.basename
+    sum(nanc)>0 && push!(out,("Error",fname(c.file),outnan(dfc,nanc)))
+    sum(nans)>0 && push!(out,("Error",fname(s.file),outnan(dfs,nans)))
+    length(dupc)>0 && push!(out,("Error",fname(c.file),outdup(dupc)))
+    length(dups)>0 && push!(out,("Error",fname(s.file),outdup(dups)))
+    sum(typc)>0 && push!(out,("Error",fname(c.file),outtyp(dfc,typc)))
+    sum(typs)>0 && push!(out,("Error",fname(s.file),outtyp(dfs,typs)))
     for x in 1:length(it)
-      sum(nani[x])>0 && push!(out,("Error",it[x].file,outnan(dfi[x],nani[x])))
-      sum(typi[x])>0 && push!(out,("Error",it[x].file,outtyp(dfi[x],typi[x])))
-      sum(typi[x])==0 && length(ovlp[x])>0 && push!(out,("Error",it[x].file,outovl(ovlp[x])))
+      sum(nani[x])>0 && push!(out,("Error",fname(it[x].file),outnan(dfi[x],nani[x])))
+      sum(typi[x])>0 && push!(out,("Error",fname(it[x].file),outtyp(dfi[x],typi[x])))
+      sum(typi[x])==0 && length(ovlp[x])>0 && push!(out,("Error",fname(it[x].file),outovl(ovlp[x])))
     end
 
     size(out,1)>0 && (return sort!(out,[:TYPE,:DESCRIPTION,:FILE]))
@@ -74,8 +76,8 @@ function validations(c::Collar, s::Survey, intervals::Intervals)
     sort!(out,[:TYPE,:DESCRIPTION,:FILE])
 end
 
-function overlaps(df,codes)
-    bh, f, t, ix = codes.holeid, codes.from, codes.to, :_IDX_
+function overlaps(df,pars)
+    bh, f, t, ix = pars.holeid, pars.from, pars.to, :_IDX_
     n = size(df,1)
     df[!,ix] = collect(1:n)
     sort!(df,[bh,f,t])

@@ -1,80 +1,3 @@
-"""
-    Collar(file, holeid=:HOLEID, x=:X, y=:Y ,z=:Z, enddepth=nothing)
-
-The definition of the drill hole collar table and its main column fields.
-`file` can be a `String` filepath or an already loaded `AbstractDataFrame`.
-"""
-Base.@kwdef struct Collar
-	file::Union{String,AbstractDataFrame}
-	holeid::Union{String,Symbol} = :HOLEID
-	x::Union{String,Symbol} = :X
-	y::Union{String,Symbol} = :Y
-	z::Union{String,Symbol} = :Z
-	enddepth::Union{String,Symbol,Nothing} = nothing
-end
-
-"""
-    Survey(file, holeid=:HOLEID, at=:AT, azm=:AZM ,dip=:DIP, invertdip=false)
-
-The definition of the drill hole survey table and its main column fields.
-`file` can be a `String` filepath or an already loaded `AbstractDataFrame`.
-Negative dip points downwards (or upwards if `invertdip`=true). Available methods
-for desurvey are `:mincurv` (minimum curvature/spherical arc) and `:tangential`.
-"""
-Base.@kwdef struct Survey
-	file::Union{String,AbstractDataFrame}
-	holeid::Union{String,Symbol} = :HOLEID
-	at::Union{String,Symbol} = :AT
-	azm::Union{String,Symbol} = :AZM
-	dip::Union{String,Symbol} = :DIP
-	invertdip::Bool = false
-	method::Symbol = :mincurv
-end
-
-"""
-    IntervalTable(file, holeid=:HOLEID, from=:FROM, to=:TO)
-
-The definition of one drill hole interval table and its main column fields.
-`file` can be a `String` filepath or an already loaded `AbstractDataFrame`.
-Examples of interval tables are lithological and assay tables.
-"""
-Base.@kwdef struct IntervalTable
-	file::Union{String,AbstractDataFrame}
-	holeid::Union{String,Symbol} = :HOLEID
-	from::Union{String,Symbol} = :FROM
-	to::Union{String,Symbol} = :TO
-end
-
-Intervals = Union{IntervalTable,AbstractArray{IntervalTable}}
-
-"""
-    DrillHole(table, trace, pars, warns)
-
-Drill hole object. `table` stores the desurveyed data. `trace` and `pars` store
-parameters for eventual post-processing or later drill hole compositing. `warns`
-report possible problems with input files.
-"""
-struct DrillHole
-	table::AbstractDataFrame # georef later to PointSet or something else
-	trace::AbstractDataFrame
-	pars::NamedTuple
-	warns::AbstractDataFrame
-end
-
-Base.show(io::IO, dh::DrillHole) = print(io, "DrillHole")
-
-function Base.show(io::IO, ::MIME"text/plain", dh::DrillHole)
-	d = size(dh.table)
-	println(io,"DrillHole table with $(d[1]) intervals")
-	println(io,"- First 5 rows:")
-	println(io,first(dh.table,5))
-	cols = string(names(dh.table))
-	cols = replace(cols, "["=>"")
-	cols = replace(cols, "\""=>"")
-	cols = replace(cols, "]"=>"")
-	println(io,"- Column variables: $cols")
-end
-
 
 """
 	drillhole(collar::Collar, survey::Survey, intervals::Intervals)
@@ -86,7 +9,8 @@ The intervals can be passed as a single `IntervalTable` or as an array of
 function drillhole(collar::Collar,survey::Survey,intervals::Intervals)
 	pars = getcolnames(survey,intervals)
 	warns = validations(collar, survey, intervals)
-	in("Error",warns[:,:TYPE]) && throw(ErrorException("errors with the data; summary below\n$warns"))
+	in("Error",warns[:,:TYPE]) && (return DrillHole(nothing,nothing,pars,warns))
+	
 	trace = gettrace(collar, survey)
 	fillxyz!(trace, pars)
 

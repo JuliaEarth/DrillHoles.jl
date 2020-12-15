@@ -4,16 +4,17 @@ using CSV
 using DataFrames
 using StatsBase:mean,weights
 
-include("desurvey.jl")
-include("validations.jl")
-include("mergetables.jl")
+include("definitions.jl")
 include("compositing.jl")
+include("desurvey.jl")
+include("mergetables.jl")
+include("validations.jl")
 
 export
-    Collar,
-    Survey,
-    IntervalTable,
+    composite,
     drillhole,
-    composite
-
+    exportwarns,
+    Collar,
+    IntervalTable,
+    Survey
 end

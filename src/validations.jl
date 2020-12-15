@@ -1,18 +1,3 @@
-"""
-
-## warning (sometimes internally resolved)
-# check enddepth
-# bhid do not exist in collar table
-# survey do not exist
-# survey do not exist at zero
-# survey duplicated (same props)
-# survey single value
-# survey vector before and after too different
-# intervals list of absent collars
-# list of numeric interval values; if not, check for alpha values in table
-
-need to improve output messages later
-"""
 
 function validations(c::Collar, s::Survey, intervals::Intervals)
     it = intervals isa IntervalTable ? [intervals] : intervals
@@ -50,9 +35,9 @@ function validations(c::Collar, s::Survey, intervals::Intervals)
 
     # error descriptions
     outnan(df,nan) = "Missing values in the column(s) $(names(df)[nan])"
-    outdup(rows) = "Duplicate values in the row(s) $rows"
+    outdup(rows) = replace("Duplicate values in the row(s) $rows","Any"=>"")
     outtyp(df,typ) = "Non-numeric values in the column(s) $(names(df)[2:end][typ])"
-    outovl(rows) = "Overlaps in the row(s) $rows"
+    outovl(rows) = replace("Overlaps in the row(s) $rows","Any"=>"")
 
     # errors out
     fname = Base.Filesystem.basename
@@ -71,7 +56,16 @@ function validations(c::Collar, s::Survey, intervals::Intervals)
     size(out,1)>0 && (return sort!(out,[:TYPE,:DESCRIPTION,:FILE]))
 
     ## WARNINGS
-    # do it
+
+    # check enddepth
+    # bhid do not exist in collar table
+    # survey do not exist
+    # survey do not exist at zero
+    # survey duplicated (same props)
+    # survey single value
+    # survey vector before and after too different
+    # intervals list of absent collars
+    # list of numeric interval values; if not, check for alpha values in table
 
     sort!(out,[:TYPE,:DESCRIPTION,:FILE])
 end
@@ -97,3 +91,12 @@ function numvalidations(dh)
     # coords bad values
     # interval bad values (or absent): stats and summary
 end
+
+
+"""
+    exportwarns(dh::DrillHole, outname="errors")
+
+Export errors and warnings identified during drill hole desurvey of `dh`
+to the file `outname`.csv.
+"""
+exportwarns(dh::DrillHole, outname::String="errors") = CSV.write("$outname.csv", dh.warns)

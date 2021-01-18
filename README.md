@@ -18,9 +18,11 @@ using Pkg; Pkg.add("DrillHoles"); Pkg.add("GeoStats")
 
 Before using the package, it is necessary to have a collar table, a survey table and at least one interval table (such as assay and lithology). They can be passed as CSV file or `DataFrame`. Examples of data tables are shown below:
 
-<DATA TABLES>
+<p align="center">
+  <img src="imgs/tables_example.png">
+</p>
 
-### Usage example
+## Usage example
 
 ```julia
 using DrillHoles

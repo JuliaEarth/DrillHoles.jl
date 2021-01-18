@@ -1,7 +1,6 @@
 # DrillHoles
 
-[![Build Status](https://travis-ci.com/rmcaixeta/DrillHoles.jl.svg?branch=master)](https://travis-ci.com/rmcaixeta/DrillHoles.jl)
-[![Coverage](https://codecov.io/gh/rmcaixeta/DrillHoles.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/rmcaixeta/DrillHoles.jl)
+[![Build Status][build-img]][build-url] [![Coverage][codecov-img]][codecov-url]
 
 `DrillHoles.jl` is a package written in Julia for drill holes desurvey and compositing.
 
@@ -59,3 +58,9 @@ pointset = georef(comps.table, (:X,:Y,:Z))
 ## Documentation
 
 The documentation of the main functions are available as [docstrings](https://juliahub.com/docs/DrillHoles)
+
+[build-img]: https://img.shields.io/github/workflow/status/rmcaixeta/DrillHoles.jl/CI?style=flat-square
+[build-url]: https://github.com/rmcaixeta/DrillHoles.jl/actions
+
+[codecov-img]: https://codecov.io/gh/rmcaixeta/DrillHoles.jl/branch/master/graph/badge.svg
+[codecov-url]: https://codecov.io/gh/rmcaixeta/DrillHoles.jl

@@ -1,58 +1,66 @@
 
-
+# merge interval tables
 function mergetables(intervals, pars)
+    # get column names
     bh, from, to = pars.holeid, pars.from, pars.to
 
-    tabs = intervals isa IntervalTable ? [intervals] : intervals
-    dfs = [f.file isa String ? CSV.read(f.file, DataFrame) : f.file for f in tabs]
+    # read all interval tables
+    interv = intervals isa Interval ? [intervals] : intervals
+    tabs = [f.file isa String ? CSV.read(f.file, DataFrame) : f.file for f in interv]
 
-    for i in 1:length(dfs)
-        t = tabs[i]
-        rename!(dfs[i], t.holeid => bh, t.from => from, t.to => to)
+    # rename main columns if necessary
+    for i in 1:length(tabs)
+        t = interv[i]
+        rename!(tabs[i], t.holeid => bh, t.from => from, t.to => to)
     end
 
-    # get all possible intervals
+    # merge all tables and get unique from
     hcols = [bh,from,to]
-    dfx = vcat(map(x->select(x,hcols),dfs)..., cols=:union)
-    dfx = unique(vcat(select(dfx,[bh,from]),rename(select(dfx,[bh,to]), to => from), cols=:union))
-    sort!(dfx, [bh, from])
-    shift = collect(2:size(dfx,1))
-    push!(shift,1) # check if works for every case
-    dfx[!,to] = dfx[shift,from]
-    dfx[!,:CHK] = dfx[shift,bh]
-    dfx = dfx[(dfx[!,to] .> dfx[!,from]) .& (dfx[!,bh] .== dfx[!,:CHK]),[bh,from,to]]
-    dfx[!,:LENGTH] = dfx[!,to] - dfx[!,from]
+    out   = vcat(map(x->select(x,hcols),tabs)..., cols=:union)
+    out   = unique(vcat(select(out,[bh,from]),rename(select(out,[bh,to]), to => from), cols=:union))
+    sort!(out, [bh, from])
 
-    # add table values
+    # add unique to and calculate length
+    shift = collect(2:size(out,1))
+    push!(shift,1) # check if works for every case
+    out[!,to]   = out[shift,from]
+    out[!,:CHK] = out[shift,bh]
+    out = out[(out[!,to] .> out[!,from]) .& (out[!,bh] .== out[!,:CHK]),[bh,from,to]]
+    out[!,:LENGTH] = out[!,to] - out[!,from]
+
+    # add all tables values to the merged intervals
     cols = []
-    for i in 1:length(dfs)
-        push!(cols,setdiff(names(dfs[i]),string.(hcols)))
-        dfs[i][!,"_LEN$i"] = dfs[i][!,to]-dfs[i][!,from]
-        dfx = leftjoin(dfx,select(dfs[i], Not(to)),on=[bh,from],makeunique=true)
+    for i in 1:length(tabs)
+        push!(cols,setdiff(names(tabs[i]),string.(hcols)))
+        tabs[i][!,"_LEN$i"] = tabs[i][!,to]-tabs[i][!,from]
+        out = leftjoin(out,select(tabs[i], Not(to)),on=[bh,from],makeunique=true)
+        select!(tabs[i], Not("_LEN$i"))
     end
 
-    for i in 1:size(dfx,1)
+    # loop all merged intervals and columns
+    for i in 1:size(out,1)
         for j in 1:length(cols)
-            ismissing(dfx[i,"_LEN$j"]) && continue
-            adj = Dict(1 => 0, 2 => dfx[i,"_LEN$j"]-dfx[i,"LENGTH"])
-            adj[2] == 0 && continue
-
-            while adj[2] > 0
+            # check how many merged intervals compose one table interval
+            ismissing(out[i,"_LEN$j"]) && continue
+            adj = Dict(1 => 0, 2 => out[i,"_LEN$j"]-out[i,"LENGTH"])
+            adj[2] ≈ 0 && continue
+            while adj[2] > 0 && adj[2] ≉  0
                 adj[1] += 1
-                adj[2] -= dfx[i+adj[1],"LENGTH"]
+                adj[2] -= out[i+adj[1],"LENGTH"]
             end
 
+            # repeat table interval values to next i2 merged intervals
             i1, i2 = (i+1), (i+adj[1])
-
             for col in cols[j]
-                crow = dfx[i,col]
+                crow = out[i,col]
                 for k in i1:i2
-                    dfx[k,col] = crow
+                    out[k,col] = crow
                 end
             end
         end
     end
 
-    tcols = [Symbol("_LEN$j") for j in 1:length(cols)]
-    select!(dfx, Not(tcols))
+    # delete auxiliary length variables
+    tcols = [Symbol("_LEN$j") for j in 1:length(tabs)]
+    select!(out, Not(tcols))
 end

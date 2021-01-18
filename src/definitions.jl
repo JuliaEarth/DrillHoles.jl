@@ -25,37 +25,43 @@ The definition of the drill hole survey table and its main column fields.
 Negative dip points downwards (or upwards if `invertdip`=true). Available methods
 for desurvey are `:mincurv` (minimum curvature/spherical arc) and `:tangential`.
 """
-Base.@kwdef struct Survey
+struct Survey
 	file::Union{String,AbstractDataFrame}
-	holeid::Union{String,Symbol} = :HOLEID
-	at::Union{String,Symbol} = :AT
-	azm::Union{String,Symbol} = :AZM
-	dip::Union{String,Symbol} = :DIP
-	invertdip::Bool = false
-	method::Symbol = :mincurv
+	holeid::Union{String,Symbol}
+	at::Union{String,Symbol}
+	azm::Union{String,Symbol}
+	dip::Union{String,Symbol}
+	invertdip::Bool
+	method::Symbol
+
+	function Survey(; file, holeid=:HOLEID, at=:AT, azm=:AZM, dip=:DIP,
+	  invertdip=false, method=:mincurv)
+	  @assert method ∈ [:mincurv, :tangential] "invalid method; choose :mincurv or :tangential"
+	  new(file, holeid, at, azm, dip, invertdip, method)
+	end
 end
 
 Base.show(io::IO, tb::Survey) = print(io, "Survey")
 Base.show(io::IO, ::MIME"text/plain", tb::Survey) = print(io, "Survey object")
 
 """
-    IntervalTable(file, holeid=:HOLEID, from=:FROM, to=:TO)
+    Interval(file, holeid=:HOLEID, from=:FROM, to=:TO)
 
 The definition of one drill hole interval table and its main column fields.
 `file` can be a `String` filepath or an already loaded `AbstractDataFrame`.
 Examples of interval tables are lithological and assay tables.
 """
-Base.@kwdef struct IntervalTable
+Base.@kwdef struct Interval
 	file::Union{String,AbstractDataFrame}
 	holeid::Union{String,Symbol} = :HOLEID
 	from::Union{String,Symbol} = :FROM
 	to::Union{String,Symbol} = :TO
 end
 
-Base.show(io::IO, tb::IntervalTable) = print(io, "IntervalTable")
-Base.show(io::IO, ::MIME"text/plain", tb::IntervalTable) = print(io, "IntervalTable object")
+Base.show(io::IO, tb::Interval) = print(io, "Interval")
+Base.show(io::IO, ::MIME"text/plain", tb::Interval) = print(io, "Interval object")
 
-Intervals = Union{IntervalTable,AbstractArray{IntervalTable}}
+Intervals = Union{Interval,AbstractArray{Interval}}
 
 """
     DrillHole(table, trace, pars, warns)
@@ -65,7 +71,7 @@ parameters for eventual post-processing or later drill hole compositing. `warns`
 report possible problems with input files.
 """
 struct DrillHole
-	table::Union{AbstractDataFrame,Nothing} # georef later to PointSet or something else
+	table::Union{AbstractDataFrame,Nothing}
 	trace::Union{AbstractDataFrame,Nothing}
 	pars::NamedTuple
 	warns::AbstractDataFrame
@@ -81,8 +87,11 @@ function Base.show(io::IO, ::MIME"text/plain", dh::DrillHole)
 		printstyled(io,"\n- or export to csv: exportwarns(::DrillHole)", color=:red)
 	else
 		d = size(dh.table)
-		println(io,"DrillHole table with $(d[1]) intervals")
-		println(io,"- Warnings: $(size(dh.warns,1))")
-		println(io,"- Column variables: $cols")
+		w = size(dh.warns,1)
+		print(io,"DrillHole with $(d[1]) intervals, $(d[2]) columns and $w warnings")
 	end
+end
+
+macro varname(arg)
+    string(arg)
 end

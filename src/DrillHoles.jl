@@ -15,6 +15,6 @@ export
     drillhole,
     exportwarns,
     Collar,
-    IntervalTable,
+    Interval,
     Survey
 end

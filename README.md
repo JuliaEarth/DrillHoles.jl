@@ -61,8 +61,8 @@ pointset = georef(comps.table, (:X,:Y,:Z))
 
 The documentation of the main functions are available as [docstrings](https://juliahub.com/docs/DrillHoles)
 
-[build-img]: https://img.shields.io/github/workflow/status/rmcaixeta/DrillHoles.jl/CI?style=flat-square
-[build-url]: https://github.com/rmcaixeta/DrillHoles.jl/actions
+[build-img]: https://img.shields.io/github/workflow/status/JuliaEarth/DrillHoles.jl/CI?style=flat-square
+[build-url]: https://github.com/JuliaEarth/DrillHoles.jl/actions
 
-[codecov-img]: https://codecov.io/gh/rmcaixeta/DrillHoles.jl/branch/master/graph/badge.svg
-[codecov-url]: https://codecov.io/gh/rmcaixeta/DrillHoles.jl
+[codecov-img]: https://codecov.io/gh/JuliaEarth/DrillHoles.jl/branch/master/graph/badge.svg
+[codecov-url]: https://codecov.io/gh/JuliaEarth/DrillHoles.jl

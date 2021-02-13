@@ -1,6 +1,9 @@
+# ------------------------------------------------------------------
+# Licensed under the MIT License. See LICENSE in the project root.
+# ------------------------------------------------------------------
 
 """
-	drillhole(collar::Collar, survey::Survey, intervals::Intervals)
+  	drillhole(collar::Collar, survey::Survey, intervals::Intervals)
 
 Desurvey drill hole based on collar, survey and interval table(s) information.
 The intervals can be passed as a single `Interval` or as an array of

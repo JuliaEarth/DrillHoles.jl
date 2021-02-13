@@ -1,3 +1,6 @@
+# ------------------------------------------------------------------
+# Licensed under the MIT License. See LICENSE in the project root.
+# ------------------------------------------------------------------
 
 # merge interval tables
 function mergetables(intervals, pars)

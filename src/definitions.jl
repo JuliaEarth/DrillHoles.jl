@@ -1,3 +1,6 @@
+# ------------------------------------------------------------------
+# Licensed under the MIT License. See LICENSE in the project root.
+# ------------------------------------------------------------------
 
 """
     Collar(file, holeid=:HOLEID, x=:X, y=:Y ,z=:Z, enddepth=nothing)
@@ -93,5 +96,5 @@ function Base.show(io::IO, ::MIME"text/plain", dh::DrillHole)
 end
 
 macro varname(arg)
-    string(arg)
+  string(arg)
 end

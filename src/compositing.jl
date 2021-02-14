@@ -1,7 +1,10 @@
+# ------------------------------------------------------------------
+# Licensed under the MIT License. See LICENSE in the project root.
+# ------------------------------------------------------------------
 
 """
-  composite(dh::DrillHole; interval=1.0, zone=nothing, mode=:equalcomp,
-  mincomp=0.5, gap=0.001)
+    composite(dh::DrillHole; interval=1.0, zone=nothing, mode=:equalcomp,
+    mincomp=0.5, gap=0.001)
 
 Composite a drill hole object considering the given parameters. Outputs a
 new composited `DrillHole` object.

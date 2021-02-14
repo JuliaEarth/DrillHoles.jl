@@ -1,3 +1,6 @@
+# ------------------------------------------------------------------
+# Licensed under the MIT License. See LICENSE in the project root.
+# ------------------------------------------------------------------
 
 function validations(c::Collar, s::Survey, intervals::Intervals)
     # get initial info

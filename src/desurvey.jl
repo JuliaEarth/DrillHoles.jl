@@ -52,7 +52,6 @@ function gettrace(c, s)
 	collar[!,s.at] .= 0.0
 	trace = leftjoin(survey,collar,on=[s.holeid,s.at])
 	sort!(trace, [s.holeid,s.at])
-	dropmissing!(trace, :X)
 end
 
 # minimum curvature desurvey method

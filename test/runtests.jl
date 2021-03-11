@@ -20,9 +20,9 @@ using Test
     @test all(isapprox.(tab[!,:TO],     [1.0, 3.5, 8.0, 4.4, 7.0, 8.0]))
     @test all(isequal.(tab[!,:L],       ["A", "A", "A", "B", "C", "C"]))
     @test all(isequal.(tab[!,:A],       [missing, 1, 2, 3, 3, missing]))
-    @test all(round.(tab[!,:X], digits=1) .≈ [1.0, 1.0, 1.0, 2.2, 2.4, 2.6])
-    @test all(round.(tab[!,:Y], digits=1) .≈ [1.0, 1.0, 1.1, 2.5, 3.2, 3.6])
-    @test all(round.(tab[!,:Z], digits=1) .≈ [1.5, 3.2, 6.7, 4.1, 7.6, 9.3])
+    @test all(round.(tab[!,:X], digits=1) .≈ [1.0, 1.0, 1.0, 2.2, 2.5, 2.6])
+    @test all(round.(tab[!,:Y], digits=1) .≈ [1.0, 1.0, 1.2, 2.5, 3.3, 3.7])
+    @test all(round.(tab[!,:Z], digits=1) .≈ [1.5, 3.2, 6.7, 4.1, 7.5, 9.3])
 
     # drill hole :equalcomp compositing tests
     comp1 = composite(dh; zone=:L, mode=:equalcomp)
@@ -34,8 +34,8 @@ using Test
     @test all(isapprox.(tab[!,:FROM],   [0,1,2,3,4,5,6,7,0,1,2,3,4.4,5.4,6.4,7.4]))
     @test all(isapprox.(tab[!,:TO],     [1,2,3,4,5,6,7,8,1,2,3,4,5.4,6.4,7.4,8]))
     @test all(isequal.(tab[!,:L],       ["A","A","A","A","A","A","A","A","B","B","B","B","C","C","C","C"]))
-    @test all(round.(tab[!,:X], digits=1) .≈ [1,1,1,1,1,1,1,1,2,2.1,2.2,2.3,2.4,2.5,2.5,2.6])
-    @test all(round.(tab[!,:Y], digits=1) .≈ [1,1,1,1.1,1.1,1.1,1.1,1.1,2.1,2.3,2.5,2.7,3,3.2,3.5,3.6])
+    @test all(round.(tab[!,:X], digits=1) .≈ [1,1,1,1,1,1,1,1,2,2.1,2.2,2.3,2.4,2.5,2.6,2.6])
+    @test all(round.(tab[!,:Y], digits=1) .≈ [1,1,1.1,1.1,1.1,1.1,1.2,1.2,2.1,2.3,2.5,2.8,3.1,3.3,3.5,3.7])
     @test all(round.(tab[!,:Z], digits=1) .≈ [1.5,2.5,3.5,4.5,5.5,6.5,7.5,8.5,2.5,3.5,4.4,5.4,6.8,7.7,8.7,9.5])
     @test all(isequal.(round.(tab[!,:A], digits=1), [missing,1,1,1.5,2,2,2,2,3,3,3,3,3,3,3,missing]))
 
@@ -49,8 +49,8 @@ using Test
     @test all(isapprox.(tab[!,:FROM],   [0,1,2,3,4,5,6,7,0,1.1,2.2,3.3,4.4,5.3,6.2,7.1]))
     @test all(isapprox.(tab[!,:TO],     [1,2,3,4,5,6,7,8,1.1,2.2,3.3,4.4,5.3,6.2,7.1,8]))
     @test all(isequal.(tab[!,:L],       ["A","A","A","A","A","A","A","A","B","B","B","B","C","C","C","C"]))
-    @test all(round.(tab[!,:X], digits=1) .≈ [1,1,1,1,1,1,1,1,2,2.1,2.2,2.3,2.4,2.4,2.5,2.6])
-    @test all(round.(tab[!,:Y], digits=1) .≈ [1,1,1,1.1,1.1,1.1,1.1,1.1,2.1,2.3,2.6,2.8,3,3.2,3.4,3.6])
-    @test all(round.(tab[!,:Z], digits=1) .≈ [1.5,2.5,3.5,4.5,5.5,6.5,7.5,8.5,2.5,3.6,4.7,5.8,6.7,7.6,8.5,9.4])
+    @test all(round.(tab[!,:X], digits=1) .≈ [1,1,1,1,1,1,1,1,2,2.1,2.2,2.3,2.4,2.5,2.6,2.6])
+    @test all(round.(tab[!,:Y], digits=1) .≈ [1,1,1.1,1.1,1.1,1.1,1.2,1.2,2.1,2.4,2.6,2.8,3.1,3.3,3.5,3.7])
+    @test all(round.(tab[!,:Z], digits=1) .≈ [1.5,2.5,3.5,4.5,5.5,6.5,7.5,8.5,2.5,3.6,4.7,5.7,6.7,7.6,8.5,9.3])
     @test all(isequal.(round.(tab[!,:A], digits=1), [missing,1,1,1.5,2,2,2,2,3,3,3,3,3,3,3,missing]))
 end

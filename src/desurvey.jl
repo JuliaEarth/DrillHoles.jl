@@ -45,6 +45,12 @@ function gettrace(c, s)
 	namepairs = [a=>b for (a,b) in zip(Symbol.(n1),Symbol.(n2)) if a!=b]
 	length(namepairs) > 0 && rename!(collar, namepairs...)
 
+	# force coordinates to floats if necessary
+	for k in [:X,:Y,:Z]
+		force_float = !(eltype(collar[!,k]) <: Float64)
+		force_float && (collar[!, k] = convert.(Float64, collar[:, k]))
+	end
+
 	# invert dip sign if requested
 	s.invertdip && (survey[s.dip] *= -1)
 

@@ -52,7 +52,7 @@ function gettrace(c, s)
 	end
 
 	# invert dip sign if requested
-	s.invertdip && (survey[s.dip] *= -1)
+	s.invertdip && (survey[!,s.dip] *= -1)
 
 	# merge collar coordinates to initial survey point
 	collar[!,s.at] .= 0.0

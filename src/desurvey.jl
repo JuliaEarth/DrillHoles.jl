@@ -30,9 +30,17 @@ function getcolnames(s,i)
 	f = i isa Interval ? i.from : i[1].from
 	t = i isa Interval ? i.to   : i[1].to
 	m = s.method == :tangential
+	c = s.convention
 
-	pars = (holeid=s.holeid, at=s.at, azm=s.azm, dip=s.dip, from=f, to=t, tang=m)
-	## check duplicate names and inform (maybe also if there is a preexisting x y z length)
+	# get most common dip sign and assume it is downwards
+	if c == :auto
+		df = s.file isa String ? CSV.read(s.file, DataFrame) : s.file
+		c  = sum(sign.(df[!,s.dip])) > 0 ? :positivedownwards : :negativedownwards
+	end
+
+	inv  = (c == :positivedownwards)
+	pars = (holeid=s.holeid, at=s.at, azm=s.azm, dip=s.dip, from=f,
+	       to=t, invdip=inv, tang=m)
 end
 
 function gettrace(c, s)
@@ -50,9 +58,6 @@ function gettrace(c, s)
 		force_float = !(eltype(collar[!,k]) <: Float64)
 		force_float && (collar[!, k] = convert.(Float64, collar[:, k]))
 	end
-
-	# invert dip sign if requested
-	s.invertdip && (survey[!,s.dip] *= -1)
 
 	# merge collar coordinates to initial survey point
 	collar[!,s.at] .= 0.0
@@ -122,6 +127,7 @@ end
 function fillxyz!(trace, pars)
 	# get column names
 	at, az, dp, tang = pars.at, pars.azm, pars.dip, pars.tang
+	f = pars.invdip ? -1 : 1
 
 	# loop trace file
 	for i in 1:size(trace,1)
@@ -130,8 +136,8 @@ function fillxyz!(trace, pars)
 
 		# get distances and angles; return increments dx,dy,dz
 		d12      = trace[i,at] - trace[i-1,at]
-        az1, dp1 = trace[i-1,az], trace[i-1,dp]
-        az2, dp2 = trace[i,az], trace[i,dp]
+        az1, dp1 = trace[i-1,az], f*trace[i-1,dp]
+        az2, dp2 = trace[i,az], f*trace[i,dp]
         dx,dy,dz = tang ? tangential(az1,dp1,d12) : mincurv(az1,dp1,az2,dp2,d12)
 
 		# add increments dx,dy,dz to previous coordinates
@@ -146,6 +152,7 @@ function fillxyz!(tab, trace, pars)
 	# get column names
 	bh, at, az, dp, tang = pars.holeid, pars.at, pars.azm, pars.dip, pars.tang
 	from, to = pars.from, pars.to
+	f = pars.invdip ? -1 : 1
 
 	# initialize coordinate columns with float values
 	tab[!,:X] .= -9999.9999
@@ -178,8 +185,8 @@ function fillxyz!(tab, trace, pars)
 		else
 			# if not, calculate coordinates increments dx,dy,dz
 			d12 = dht[b[2],at]-dht[b[1],at]
-			az1, dp1 = dht[b[1],az], dht[b[1],dp]
-			az2, dp2 = dht[b[2],az], dht[b[2],dp]
+			az1, dp1 = dht[b[1],az], f*dht[b[1],dp]
+			az2, dp2 = dht[b[2],az], f*dht[b[2],dp]
 			azx, dpx = b[1]==b[2] ? (az2, dp2) : weightedangs([az1,dp1],[az2,dp2],d12,d1x)
 			dx,dy,dz = tang ? tangential(az1,dp1,d1x) : mincurv(az1,dp1,azx,dpx,d1x)
 

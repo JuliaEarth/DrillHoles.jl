@@ -21,12 +21,15 @@ Base.show(io::IO, tb::Collar) = print(io, "Collar")
 Base.show(io::IO, ::MIME"text/plain", tb::Collar) = print(io, "Collar object")
 
 """
-    Survey(file, holeid=:HOLEID, at=:AT, azm=:AZM ,dip=:DIP, invertdip=false)
+    Survey(file, holeid=:HOLEID, at=:AT, azm=:AZM ,dip=:DIP,
+	convention=:auto, method=:mincurv)
 
 The definition of the drill hole survey table and its main column fields.
 `file` can be a `String` filepath or an already loaded `AbstractDataFrame`.
-Negative dip points downwards (or upwards if `invertdip`=true). Available methods
-for desurvey are `:mincurv` (minimum curvature/spherical arc) and `:tangential`.
+Dip `convention` can be `:auto`, `:positivedownwards` or `:negativedownwards`.
+The default is set to `:auto` and assumes that the most common dip sign points
+downwards. Available methods for desurvey are `:mincurv` (minimum curvature/
+spherical arc) and `:tangential`.
 """
 struct Survey
 	file::Union{String,AbstractDataFrame}
@@ -34,13 +37,14 @@ struct Survey
 	at::Union{String,Symbol}
 	azm::Union{String,Symbol}
 	dip::Union{String,Symbol}
-	invertdip::Bool
+	convention::Symbol
 	method::Symbol
 
 	function Survey(; file, holeid=:HOLEID, at=:AT, azm=:AZM, dip=:DIP,
-	  invertdip=false, method=:mincurv)
+	  convention=:auto, method=:mincurv)
 	  @assert method ∈ [:mincurv, :tangential] "invalid method; choose :mincurv or :tangential"
-	  new(file, holeid, at, azm, dip, invertdip, method)
+	  @assert convention ∈ [:auto, :negativedownwards, :positivedownwards] "invalid convention; choose :auto, :negativedownwards or :positivedownwards"
+	  new(file, holeid, at, azm, dip, convention, method)
 	end
 end
 

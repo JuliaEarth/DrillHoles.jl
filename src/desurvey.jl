@@ -38,8 +38,9 @@ function getcolnames(s,i)
 		c  = sum(sign.(df[!,s.dip])) > 0 ? :positivedownwards : :negativedownwards
 	end
 
+	inv  = (c == :positivedownwards)
 	pars = (holeid=s.holeid, at=s.at, azm=s.azm, dip=s.dip, from=f,
-	       to=t, invdip=(c == :positivedownwards), tang=m)
+	       to=t, invdip=inv, tang=m)
 end
 
 function gettrace(c, s)

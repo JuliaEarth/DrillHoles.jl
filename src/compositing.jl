@@ -47,7 +47,7 @@ function composite(dhf::DrillHole; interval::Number=1.0, zone=nothing,
     # check gaps, holes and zones to create/separate different groups
     t1 = (dh[i-1,to] - dh[i,from]) > gap
     t2 = dh[i-1,bh] != dh[i,bh]
-    t3 = zone == nothing ? false : dh[i-1,zone] != dh[i,zone]
+    t3 = isnothing(zone) ? false : !isequal(dh[i-1,zone], dh[i,zone])
     (t1 || t2 || t3) && (c += 1)
     push!(gps,c)
   end

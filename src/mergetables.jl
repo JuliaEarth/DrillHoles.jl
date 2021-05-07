@@ -40,6 +40,9 @@ function mergetables(intervals, pars)
         select!(tabs[i], Not("_LEN$i"))
     end
 
+    # leftjoin might affect order of the output after DataFrames 1.0. sort again
+    sort!(out, [bh, from])
+
     # loop all merged intervals and columns
     for i in 1:size(out,1)
         for j in 1:length(cols)

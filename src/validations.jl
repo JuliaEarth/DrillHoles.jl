@@ -2,11 +2,10 @@
 # Licensed under the MIT License. See LICENSE in the project root.
 # ------------------------------------------------------------------
 
-function validations(c::Collar, s::Survey, intervals::Intervals)
+function validations(c::Collar, s::Survey, intervals)
     # get initial info
     cfields = [c.holeid,c.x,c.y,c.z]
     sfields = [s.holeid,s.at,s.azm,s.dip]
-    c.enddepth != nothing && push!(cfields,c.enddepth)
     it = intervals isa Interval ? [intervals] : intervals
 
     # read files
@@ -42,19 +41,18 @@ function validations(c::Collar, s::Survey, intervals::Intervals)
     outdup(rows)   = replace("Duplicate values in the row(s) $rows","Any"=>"")
     outtyp(df,typ) = "Non-numeric values in the column(s) $(names(df)[2:end][typ])"
     outovl(rows)   = replace("Overlaps in the row(s) $rows","Any"=>"")
-    fname(x)       = x isa String ? Base.Filesystem.basename(x) : @varname(x)
 
     # check for errors and add it to output table if it exists
-    sum(nanc)>0    && push!(out,("Error",fname(c.file),outnan(dfc,nanc)))
-    sum(nans)>0    && push!(out,("Error",fname(s.file),outnan(dfs,nans)))
-    length(dupc)>0 && push!(out,("Error",fname(c.file),outdup(dupc)))
-    length(dups)>0 && push!(out,("Error",fname(s.file),outdup(dups)))
-    sum(typc)>0    && push!(out,("Error",fname(c.file),outtyp(dfc,typc)))
-    sum(typs)>0    && push!(out,("Error",fname(s.file),outtyp(dfs,typs)))
+    sum(nanc)>0    && push!(out,("Error",basename(c.file),outnan(dfc,nanc)))
+    sum(nans)>0    && push!(out,("Error",basename(s.file),outnan(dfs,nans)))
+    length(dupc)>0 && push!(out,("Error",basename(c.file),outdup(dupc)))
+    length(dups)>0 && push!(out,("Error",basename(s.file),outdup(dups)))
+    sum(typc)>0    && push!(out,("Error",basename(c.file),outtyp(dfc,typc)))
+    sum(typs)>0    && push!(out,("Error",basename(s.file),outtyp(dfs,typs)))
     for x in 1:length(it)
-      sum(nani[x])>0  && push!(out,("Error",fname(it[x].file),outnan(dfi[x],nani[x])))
-      sum(typi[x])>0  && push!(out,("Error",fname(it[x].file),outtyp(dfi[x],typi[x])))
-      sum(typi[x])==0 && length(ovlp[x])>0 && push!(out,("Error",fname(it[x].file),outovl(ovlp[x])))
+      sum(nani[x])>0  && push!(out,("Error",basename(it[x].file),outnan(dfi[x],nani[x])))
+      sum(typi[x])>0  && push!(out,("Error",basename(it[x].file),outtyp(dfi[x],typi[x])))
+      sum(typi[x])==0 && length(ovlp[x])>0 && push!(out,("Error",basename(it[x].file),outovl(ovlp[x])))
     end
 
     # if some error exists, stop validations and return the errors
@@ -62,7 +60,6 @@ function validations(c::Collar, s::Survey, intervals::Intervals)
 
     ## WARNINGS
 
-    # check enddepth
     # check duplicate names and inform (maybe also if there is a preexisting x y z length)
     # bhid do not exist in collar table
     # survey do not exist
@@ -94,11 +91,3 @@ function overlaps(df,pars)
     end
     ovlps
 end
-
-"""
-    exportwarns(dh::DrillHole, outname="errors")
-
-Export errors and warnings identified during drill hole desurvey of `dh`
-to the file `outname`.csv.
-"""
-exportwarns(dh::DrillHole, outname::String="errors") = CSV.write("$outname.csv", dh.warns)

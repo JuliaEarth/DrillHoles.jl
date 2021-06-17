@@ -17,8 +17,8 @@ include("validations.jl")
 export
   composite,
   drillhole,
-  exportwarns,
   Collar,
-  Interval,
-  Survey
+  Survey,
+  Interval
+
 end

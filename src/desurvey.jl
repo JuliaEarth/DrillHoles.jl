@@ -3,13 +3,13 @@
 # ------------------------------------------------------------------
 
 """
-  	drillhole(collar::Collar, survey::Survey, intervals::Intervals)
+  	drillhole(collar::Collar, survey::Survey, intervals)
 
 Desurvey drill hole based on collar, survey and interval table(s) information.
 The intervals can be passed as a single `Interval` or as an array of
 `Interval`. Outputs a `DrillHole` object.
 """
-function drillhole(collar::Collar,survey::Survey,intervals::Intervals)
+function drillhole(collar::Collar,survey::Survey,intervals)
 	# pre process information
 	pars  = getcolnames(survey,intervals)
 	warns = validations(collar, survey, intervals)

@@ -60,39 +60,40 @@ function getcolnames(s, i, method, convention)
 end
 
 function trajectories(survey, collar, method, convention)
-  # select relevant columns of survey table
+  # select relevant columns of survey table and
+  # standardize column names to HOLEID, AT, AZM, DIP
   stable = select(DataFrame(survey.table),
-                  survey.holeid,
-                  survey.at,
-                  survey.azm,
-                  survey.dip)
+                  survey.holeid => :HOLEID,
+                  survey.at     => :AT,
+                  survey.azm    => :AZM,
+                  survey.dip    => :DIP)
 
-  # rename collar columns to match survey columns if necessary
-  # and fix coordinates types to double floating point precision
+  # select relevant columns of collar table and
+  # standardize column names to HOLEID, X, Y, Z
   ctable = select(DataFrame(collar.table),
-                  collar.holeid => survey.holeid,
+                  collar.holeid => :HOLEID,
                   collar.x => ByRow(Float64) => :X,
                   collar.y => ByRow(Float64) => :Y,
                   collar.z => ByRow(Float64) => :Z)
 
   # collar coordinates are at depth 0
-  ctable[!,survey.at] .= 0
+  ctable[!,:AT] .= 0
 
   # join tables and sort by hole id and depth
-  cols  = [survey.holeid, survey.at]
+  cols  = [:HOLEID, :AT]
   trace = leftjoin(stable, ctable, on = cols)
   sort!(trace, cols)
 
   # fix sign of dip angle if necessary
-  convention == :positive && (trace[!,survey.dip] *= -1)
+  convention == :positive && (trace[!,:DIP] *= -1)
 
   # choose a desurveying method
   diffmethod = method == :arc ? arcmethod : tangentmethod
 
   # relevant columns for calculation
-  at = trace[!,survey.at]
-  az = trace[!,survey.azm]
-  dp = trace[!,survey.dip]
+  at = trace[!,:AT]
+  az = trace[!,:AZM]
+  dp = trace[!,:DIP]
   x  = trace[!,:X]
   y  = trace[!,:Y]
   z  = trace[!,:Z]

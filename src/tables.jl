@@ -16,14 +16,9 @@ Base.@kwdef struct Collar
 end
 
 """
-    Survey(table, holeid=:HOLEID, at=:AT, azm=:AZM, dip=:DIP, convention=:auto, method=:mincurv)
+    Survey(table, holeid=:HOLEID, at=:AT, azm=:AZM, dip=:DIP)
 
 Survey table and its main columns fields.
-
-Dip `convention` can be `:auto`, `:positivedownwards` or `:negativedownwards`.
-The default is set to `:auto` and assumes that the most common dip sign points
-downwards. Available methods for desurvey are `:mincurv` (minimum curvature/
-spherical arc) and `:tangential`.
 """
 Base.@kwdef struct Survey
   table
@@ -31,8 +26,6 @@ Base.@kwdef struct Survey
   at::Symbol         = :AT
   azm::Symbol        = :AZM
   dip::Symbol        = :DIP
-  convention::Symbol = :auto
-  method::Symbol     = :mincurv
 end
 
 """

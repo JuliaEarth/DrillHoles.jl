@@ -5,13 +5,12 @@ using Test
 @testset "DrillHoles.jl" begin
     # dummy data
     collar = Collar(table=DataFrame(HOLEID=1:2, X=1:2, Y=1:2, Z=1:2))
-    survey = Survey(table=DataFrame(HOLEID=[1,1,2,2], AT=[0,5,0,5], AZM=[0,1,20,21], DIP=[89,88,77,76]),
-                    method=:mincurv, convention=:negativedownwards)
+    survey = Survey(table=DataFrame(HOLEID=[1,1,2,2], AT=[0,5,0,5], AZM=[0,1,20,21], DIP=[89,88,77,76]))
     assays = Interval(table=DataFrame(HOLEID=[1,1,2], FROM=[1,3.5,0], TO=[3.5,8,7], A=[1,2,3]))
     lithos = Interval(table=DataFrame(HOLEID=[1,2,2], FROM=[0,0,4.4], TO=[8,4.4,8], L=["A","B","C"]))
 
     # drill hole desurvey tests
-    dh  = desurvey(collar, survey, [assays, lithos])
+    dh  = desurvey(collar, survey, [assays, lithos], method = :arc, convention = :negative)
     tab = dh.table
 
     @test size(tab, 1) == 6
@@ -58,11 +57,10 @@ using Test
     ##########################################################################
 
     # tests using different survey method and dip convention
-    survey = Survey(table=DataFrame(HOLEID=[1,1,2,2], AT=[0,5,0,5], AZM=[0,1,20,21], DIP=[89,88,77,76]),
-                    method=:tangential, convention=:auto)
+    survey = Survey(table=DataFrame(HOLEID=[1,1,2,2], AT=[0,5,0,5], AZM=[0,1,20,21], DIP=[89,88,77,76]))
 
     # drill hole desurvey tests
-    dh  = desurvey(collar, survey, [assays, lithos])
+    dh  = desurvey(collar, survey, [assays, lithos], method = :tangent, convention = :auto)
     tab = dh.table
 
     @test dh.pars.invdip == true

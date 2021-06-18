@@ -3,13 +3,35 @@
 # ------------------------------------------------------------------
 
 """
-    desurvey(collar, survey, intervals)
+    desurvey(collar, survey, intervals; method=:arc, convention=:auto)
 
-Desurvey drill holes based on collar, survey and interval tables.
+Desurvey drill holes based on `collar`, `survey` and `intervals` tables
+using a given `method`. Optionally, specify a `convention` for the dip
+angles.
+
+## Methods
+
+* `:arc`     - spherical arc approximation
+* `:tangent` - raw tanget approximation
+
+See https://help.seequent.com/Geo/2.1/en-GB/Content/drillholes/desurveying.htm
+
+## Conventions
+
+* `:auto`     - assumes that the most frequent dip sign points downwards
+* `:positive` - positive dip sign points downwards
+* `:negative` - negative dip sign points downwards
+
+## Example
+
+```julia
+julia> desurvey(collar, survey, [assay, lithology])
+```
 """
-function desurvey(collar::Collar, survey::Survey, intervals)
+function desurvey(collar::Collar, survey::Survey, intervals;
+                  method=:arc, convention=:auto)
   # pre process information
-  pars  = getcolnames(survey,intervals)
+  pars  = getcolnames(survey, intervals, method, convention)
 
   # create trace information
   trace = gettrace(collar, survey)
@@ -22,21 +44,21 @@ function desurvey(collar::Collar, survey::Survey, intervals)
   DrillHole(table,trace,pars)
 end
 
-function getcolnames(s,i)
+function getcolnames(s, i, method, convention)
   f = i isa Interval ? i.from : i[1].from
   t = i isa Interval ? i.to   : i[1].to
-  m = s.method == :tangential
-  c = s.convention
+  m = method == :tangent
+  c = convention
 
   # get most common dip sign and assume it is downwards
   if c == :auto
     df = s.table
-    c  = sum(sign.(df[!,s.dip])) > 0 ? :positivedownwards : :negativedownwards
+    c  = sum(sign.(df[!,s.dip])) > 0 ? :positive : :negative
   end
 
-  inv  = (c == :positivedownwards)
-  pars = (holeid=s.holeid, at=s.at, azm=s.azm, dip=s.dip, from=f,
-          to=t, invdip=inv, tang=m)
+  inv  = (c == :positive)
+
+  (holeid=s.holeid, at=s.at, azm=s.azm, dip=s.dip, from=f, to=t, invdip=inv, tang=m)
 end
 
 function gettrace(c, s)

@@ -31,22 +31,22 @@ julia> desurvey(collar, survey, [assay, lithology])
 function desurvey(collar::Collar, survey::Survey, intervals;
                   method=:arc, convention=:auto)
   # pre process information
-  pars  = getcolnames(survey, intervals, method, convention)
+  pars = getcolnames(survey, intervals, method, convention)
 
-  # create trace information
-  trace = gettrace(collar, survey)
+  # compute drillhole trajectories
+  trace = trajectories(survey, collar)
   fillxyz!(trace, pars)
 
   # merge interval tables
   table = mergetables(intervals, pars)
   fillxyz!(table, trace, pars)
 
-  DrillHole(table,trace,pars)
+  DrillHole(table, trace, pars)
 end
 
 function getcolnames(s, i, method, convention)
-  f = i isa Interval ? i.from : i[1].from
-  t = i isa Interval ? i.to   : i[1].to
+  f = first(i).from
+  t = first(i).to
   m = method == :tangent
   c = convention
 
@@ -61,41 +61,29 @@ function getcolnames(s, i, method, convention)
   (holeid=s.holeid, at=s.at, azm=s.azm, dip=s.dip, from=f, to=t, invdip=inv, tang=m)
 end
 
-function gettrace(c, s)
-  collar = c.table
-  survey = s.table
+function trajectories(survey, collar)
+  # select relevant columns of survey table
+  stable = select(DataFrame(survey.table),
+                  survey.holeid,
+                  survey.at,
+                  survey.azm,
+                  survey.dip)
 
   # rename collar columns to match survey columns if necessary
-  n1 = (c.x,c.y,c.z,c.holeid)
-  n2 = ( :X, :Y, :Z,s.holeid)
-  namepairs = [a=>b for (a,b) in zip(Symbol.(n1),Symbol.(n2)) if a!=b]
-  length(namepairs) > 0 && rename!(collar, namepairs...)
+  # and fix coordinates types to double floating point precision
+  ctable = select(DataFrame(collar.table),
+                  collar.holeid => survey.holeid,
+                  collar.x => ByRow(Float64) => :X,
+                  collar.y => ByRow(Float64) => :Y,
+                  collar.z => ByRow(Float64) => :Z)
 
-  # force coordinates to floats if necessary
-  for k in [:X,:Y,:Z]
-    force_float = !(eltype(collar[!,k]) <: Float64)
-    force_float && (collar[!, k] = convert.(Float64, collar[:, k]))
-  end
+  # assign collar coordinates to initial survey point
+  ctable[!,survey.at] .= 0
 
-  # merge collar coordinates to initial survey point
-  collar[!,s.at] .= 0.0
-  trace = leftjoin(survey,collar,on=[s.holeid,s.at])
-  sort!(trace, [s.holeid,s.at])
-end
-
-# find survey depths bounding given depth
-function findbounds(depths::AbstractArray, at)
-  # get closest survey
-  nearid = findmin(abs.(depths.-at))[2]
-  nearest = depths[nearid]
-
-  # check if depth is after last interval
-  nearid == length(depths) && nearest < at && return (nearid,nearid)
-
-  # return (previous, next) survey ids for given depth
-  nearest == at && return (nearid, nearid)
-  nearest >  at && return (nearid-1, nearid)
-  nearest <  at && return (nearid, nearid+1)
+  # join tables and sort by hole id and at
+  cols = [survey.holeid, survey.at]
+  trace = leftjoin(stable, ctable, on = cols)
+  sort!(trace, cols)
 end
 
 # fill xyz for dh trace files
@@ -222,4 +210,19 @@ function weightedangs(angs1,angs2,d12,d1x)
   # convert average vector to survey angles and return it
   azm, dip = vec2angs(v12...)
   azm, dip
+end
+
+# find survey depths bounding given depth
+function findbounds(depths::AbstractArray, at)
+  # get closest survey
+  nearid = findmin(abs.(depths.-at))[2]
+  nearest = depths[nearid]
+
+  # check if depth is after last interval
+  nearid == length(depths) && nearest < at && return (nearid,nearid)
+
+  # return (previous, next) survey ids for given depth
+  nearest == at && return (nearid, nearid)
+  nearest >  at && return (nearid-1, nearid)
+  nearest <  at && return (nearid, nearid+1)
 end

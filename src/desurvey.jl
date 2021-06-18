@@ -200,24 +200,20 @@ end
 # -----------------
 
 # convert survey angles to 3D vector and vice versa
-angs2vec(az,dp) = [sind(az)*cosd(-dp), cosd(az)*cosd(-dp), sind(-dp)]
-vec2angs(i,j,k) = [atand(i,j), -asind(k)]
+angs2vec(azm, dip) = (sind(azm)*cosd(-dip), cosd(azm)*cosd(-dip), sind(-dip))
+vec2angs(x, y, z)  = (atand(x, y), -asind(z))
 
 # average angle between two surveyed intervals
 function weightedangs(angs1,angs2,d12,d1x)
-  # angle to vectors
   v1 = angs2vec(angs1...)
   v2 = angs2vec(angs2...)
 
-  # weight average vector according to distance to surveys
-  p2   = d1x/d12
-  p1   = 1-p2
-  v12  = v1*p1 + v2*p2
-  v12 /= sqrt(sum(abs2,v12))
+  # weight according to distance to surveys
+  p2   = d1x / d12
+  p1   = 1 - p2
+  v12  = @. p1*v1 + p2*v2
 
-  # convert average vector to survey angles and return it
-  azm, dip = vec2angs(v12...)
-  azm, dip
+  vec2angs(v12...)
 end
 
 # find survey depths bounding given depth

@@ -7,13 +7,11 @@ function mergetables(intervals, pars)
   # get column names
   bh, from, to = pars.holeid, pars.from, pars.to
 
-  # read all interval tables
-  interv = intervals isa Interval ? [intervals] : intervals
-  tabs = [f.table for f in interv]
+  tabs = [i.table for i in intervals]
 
   # rename main columns if necessary
   for i in 1:length(tabs)
-    t = interv[i]
+    t = intervals[i]
     rename!(tabs[i], t.holeid => bh, t.from => from, t.to => to)
   end
 

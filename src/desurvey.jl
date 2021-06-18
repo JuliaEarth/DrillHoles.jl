@@ -98,27 +98,6 @@ function findbounds(depths::AbstractArray, at)
   nearest <  at && return (nearid, nearid+1)
 end
 
-# convert survey angles to 3-D vector and vice versa
-angs2vec(az,dp) = [sind(az)*cosd(-dp), cosd(az)*cosd(-dp), sind(-dp)]
-vec2angs(i,j,k) = [atand(i,j), -asind(k)]
-
-# average angle between two surveyed intervals
-function weightedangs(angs1,angs2,d12,d1x)
-  # angle to vectors
-  v1 = angs2vec(angs1...)
-  v2 = angs2vec(angs2...)
-
-  # weight average vector according to distance to surveys
-  p2   = d1x/d12
-  p1   = 1-p2
-  v12  = v1*p1 + v2*p2
-  v12 /= sqrt(sum(abs2,v12))
-
-  # convert average vector to survey angles and return it
-  azm, dip = vec2angs(v12...)
-  azm, dip
-end
-
 # fill xyz for dh trace files
 function fillxyz!(trace, pars)
   # get column names
@@ -218,4 +197,29 @@ function tangentmethod(az1, dp1, d12)
   dy  = d12*sind(dp1)*cosd(az1)
   dz  = d12*cosd(dp1)
   dx, dy, dz
+end
+
+# -----------------
+# HELPER FUNCTIONS
+# -----------------
+
+# convert survey angles to 3D vector and vice versa
+angs2vec(az,dp) = [sind(az)*cosd(-dp), cosd(az)*cosd(-dp), sind(-dp)]
+vec2angs(i,j,k) = [atand(i,j), -asind(k)]
+
+# average angle between two surveyed intervals
+function weightedangs(angs1,angs2,d12,d1x)
+  # angle to vectors
+  v1 = angs2vec(angs1...)
+  v2 = angs2vec(angs2...)
+
+  # weight average vector according to distance to surveys
+  p2   = d1x/d12
+  p1   = 1-p2
+  v12  = v1*p1 + v2*p2
+  v12 /= sqrt(sum(abs2,v12))
+
+  # convert average vector to survey angles and return it
+  azm, dip = vec2angs(v12...)
+  azm, dip
 end

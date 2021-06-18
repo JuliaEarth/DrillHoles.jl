@@ -32,7 +32,7 @@ function getcolnames(s,i)
 
   # get most common dip sign and assume it is downwards
   if c == :auto
-    df = s.file isa String ? CSV.read(s.file, DataFrame) : s.file
+    df = s.table
     c  = sum(sign.(df[!,s.dip])) > 0 ? :positivedownwards : :negativedownwards
   end
 
@@ -42,8 +42,8 @@ function getcolnames(s,i)
 end
 
 function gettrace(c, s)
-  collar = c.file isa String ? CSV.read(c.file, DataFrame) : c.file
-  survey = s.file isa String ? CSV.read(s.file, DataFrame) : s.file
+  collar = c.table
+  survey = s.table
 
   # rename collar columns to match survey columns if necessary
   n1 = (c.x,c.y,c.z,c.holeid)

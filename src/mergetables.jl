@@ -9,7 +9,7 @@ function mergetables(intervals, pars)
 
   # read all interval tables
   interv = intervals isa Interval ? [intervals] : intervals
-  tabs = [f.file isa String ? CSV.read(f.file, DataFrame) : f.file for f in interv]
+  tabs = [f.table for f in interv]
 
   # rename main columns if necessary
   for i in 1:length(tabs)

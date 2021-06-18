@@ -3,12 +3,12 @@
 # ------------------------------------------------------------------
 
 """
-    Collar(file, holeid=:HOLEID, x=:X, y=:Y, z=:Z)
+    Collar(table, holeid=:HOLEID, x=:X, y=:Y, z=:Z)
 
 The definition of the drill hole collar table and its main column fields.
 """
 Base.@kwdef struct Collar
-  file
+  table
   holeid::Symbol = :HOLEID
   x::Symbol      = :X
   y::Symbol      = :Y
@@ -16,16 +16,17 @@ Base.@kwdef struct Collar
 end
 
 """
-    Survey(file, holeid=:HOLEID, at=:AT, azm=:AZM, dip=:DIP, convention=:auto, method=:mincurv)
+    Survey(table, holeid=:HOLEID, at=:AT, azm=:AZM, dip=:DIP, convention=:auto, method=:mincurv)
 
 The definition of the drill hole survey table and its main column fields.
+
 Dip `convention` can be `:auto`, `:positivedownwards` or `:negativedownwards`.
 The default is set to `:auto` and assumes that the most common dip sign points
 downwards. Available methods for desurvey are `:mincurv` (minimum curvature/
 spherical arc) and `:tangential`.
 """
 Base.@kwdef struct Survey
-  file
+  table
   holeid::Symbol     = :HOLEID
   at::Symbol         = :AT
   azm::Symbol        = :AZM
@@ -35,13 +36,14 @@ Base.@kwdef struct Survey
 end
 
 """
-    Interval(file, holeid=:HOLEID, from=:FROM, to=:TO)
+    Interval(table, holeid=:HOLEID, from=:FROM, to=:TO)
 
 The definition of one drill hole interval table and its main column fields.
+
 Examples of interval tables are lithological and assay tables.
 """
 Base.@kwdef struct Interval
-  file
+  table
   holeid::Symbol = :HOLEID
   from::Symbol   = :FROM
   to::Symbol     = :TO

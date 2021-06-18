@@ -5,7 +5,7 @@
 """
     Collar(table, holeid=:HOLEID, x=:X, y=:Y, z=:Z)
 
-The definition of the drill hole collar table and its main column fields.
+Collar table and its main column fields.
 """
 Base.@kwdef struct Collar
   table
@@ -18,7 +18,7 @@ end
 """
     Survey(table, holeid=:HOLEID, at=:AT, azm=:AZM, dip=:DIP, convention=:auto, method=:mincurv)
 
-The definition of the drill hole survey table and its main column fields.
+Survey table and its main columns fields.
 
 Dip `convention` can be `:auto`, `:positivedownwards` or `:negativedownwards`.
 The default is set to `:auto` and assumes that the most common dip sign points
@@ -38,7 +38,7 @@ end
 """
     Interval(table, holeid=:HOLEID, from=:FROM, to=:TO)
 
-The definition of one drill hole interval table and its main column fields.
+Interval table and its main column fields.
 
 Examples of interval tables are lithological and assay tables.
 """

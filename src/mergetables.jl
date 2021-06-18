@@ -3,9 +3,10 @@
 # ------------------------------------------------------------------
 
 # merge interval tables
-function mergetables(intervals, pars)
+function mergetables(intervals)
   # get column names
-  from, to = pars.from, pars.to
+  interval = first(intervals)
+  from, to = interval.from, interval.to
 
   tabs = [i.table for i in intervals]
 

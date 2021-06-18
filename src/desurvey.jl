@@ -36,7 +36,7 @@ function desurvey(collar, survey, intervals; method=:arc, convention=:auto)
   trace = trajectories(survey, collar, method, convention)
 
   # merge interval tables
-  table = mergetables(intervals, pars)
+  table = mergetables(intervals)
   fillxyz!(table, trace, pars)
 
   DrillHole(table, trace, pars)

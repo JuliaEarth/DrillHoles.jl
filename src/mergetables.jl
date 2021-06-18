@@ -4,13 +4,10 @@
 
 # merge interval tables
 function mergetables(intervals)
-  tabs = [i.table for i in intervals]
-
-  # rename main columns if necessary
-  for i in 1:length(tabs)
-    t = intervals[i]
-    rename!(tabs[i], t.holeid => :HOLEID, t.from => :FROM, t.to => :TO)
-  end
+  tabs = [rename(DataFrame(interval.table),
+                 interval.holeid => :HOLEID,
+                 interval.from   => :FROM,
+                 interval.to     => :TO) for interval in intervals]
 
   # merge all tables and get unique from
   hcols = [:HOLEID,:FROM,:TO]

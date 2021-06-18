@@ -81,12 +81,11 @@ function trajectories(survey, collar)
   ctable[!,survey.at] .= 0
 
   # join tables and sort by hole id and at
-  cols = [survey.holeid, survey.at]
+  cols  = [survey.holeid, survey.at]
   trace = leftjoin(stable, ctable, on = cols)
   sort!(trace, cols)
 end
 
-# fill xyz for dh trace files
 function fillxyz!(trace, pars)
   # get column names
   at, az, dp, tang = pars.at, pars.azm, pars.dip, pars.tang
@@ -101,7 +100,7 @@ function fillxyz!(trace, pars)
     d12      = trace[i,at] - trace[i-1,at]
     az1, dp1 = trace[i-1,az], f*trace[i-1,dp]
     az2, dp2 = trace[i,az], f*trace[i,dp]
-    dx,dy,dz = tang ? tangentmethod(az1,dp1,d12) : arcmethod(az1,dp1,az2,dp2,d12)
+    dx,dy,dz = tang ? tangentmethod(az1,dp1,az2,dp2,d12) : arcmethod(az1,dp1,az2,dp2,d12)
 
     # add increments dx,dy,dz to previous coordinates
     trace[i,:X] = dx + trace[i-1,:X]
@@ -151,7 +150,7 @@ function fillxyz!(tab, trace, pars)
       az1, dp1 = dht[b[1],az], f*dht[b[1],dp]
       az2, dp2 = dht[b[2],az], f*dht[b[2],dp]
       azx, dpx = b[1]==b[2] ? (az2, dp2) : weightedangs([az1,dp1],[az2,dp2],d12,d1x)
-      dx,dy,dz = tang ? tangentmethod(az1,dp1,d1x) : arcmethod(az1,dp1,azx,dpx,d1x)
+      dx,dy,dz = tang ? tangentmethod(az1,dp1,azx,dpx,d1x) : arcmethod(az1,dp1,azx,dpx,d1x)
 
       # add increments dx,dy,dz to trace coordinates
       tab[i,:X] = dx + dht[b[1],:X]
@@ -179,7 +178,7 @@ function arcmethod(az1, dp1, az2, dp2, d12)
   dx, dy, dz
 end
 
-function tangentmethod(az1, dp1, d12)
+function tangentmethod(az1, dp1, az2, dp2, d12)
   dp1 = (90-dp1)
   dx  = d12*sind(dp1)*sind(az1)
   dy  = d12*sind(dp1)*cosd(az1)

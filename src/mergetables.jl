@@ -4,32 +4,33 @@
 
 # merge interval tables
 function mergetables(intervals)
-  tabs = [rename(DataFrame(interval.table),
-                 interval.holeid => :HOLEID,
-                 interval.from   => :FROM,
-                 interval.to     => :TO) for interval in intervals]
+  # standardize column names to HOLEID, FROM, TO
+  tables = [rename(DataFrame(interval.table),
+                   interval.holeid => :HOLEID,
+                   interval.from   => :FROM,
+                   interval.to     => :TO) for interval in intervals]
 
   # merge all tables and get unique from
   hcols = [:HOLEID,:FROM,:TO]
-  out   = vcat(map(x->select(x,hcols),tabs)..., cols=:union)
+  out   = vcat([select(table, hcols) for table in tables]..., cols=:union)
   out   = unique(vcat(select(out,[:HOLEID,:FROM]),rename(select(out,[:HOLEID,:TO]), :TO => :FROM), cols=:union))
   sort!(out, [:HOLEID, :FROM])
 
   # add unique to and calculate length
   shift = collect(2:size(out,1))
   push!(shift,1) # check if works for every case
-  out[!,:TO]   = out[shift,:FROM]
+  out[!,:TO]  = out[shift,:FROM]
   out[!,:CHK] = out[shift,:HOLEID]
   out = out[(out[!,:TO] .> out[!,:FROM]) .& (out[!,:HOLEID] .== out[!,:CHK]),[:HOLEID,:FROM,:TO]]
   out[!,:LENGTH] = out[!,:TO] - out[!,:FROM]
 
   # add all tables values to the merged intervals
   cols = []
-  for i in 1:length(tabs)
-    push!(cols,setdiff(names(tabs[i]),string.(hcols)))
-    tabs[i][!,"_LEN$i"] = tabs[i][!,:TO]-tabs[i][!,:FROM]
-    out = leftjoin(out,select(tabs[i], Not(:TO)),on=[:HOLEID,:FROM],makeunique=true)
-    select!(tabs[i], Not("_LEN$i"))
+  for i in 1:length(tables)
+    push!(cols,setdiff(names(tables[i]),string.(hcols)))
+    tables[i][!,"_LEN$i"] = tables[i][!,:TO]-tables[i][!,:FROM]
+    out = leftjoin(out,select(tables[i], Not(:TO)),on=[:HOLEID,:FROM],makeunique=true)
+    select!(tables[i], Not("_LEN$i"))
   end
 
   # leftjoin might affect order of the output after DataFrames 1.0. sort again
@@ -59,6 +60,6 @@ function mergetables(intervals)
   end
 
   # delete auxiliary length variables
-  tcols = [Symbol("_LEN$j") for j in 1:length(tabs)]
+  tcols = [Symbol("_LEN$j") for j in 1:length(tables)]
   select!(out, Not(tcols))
 end

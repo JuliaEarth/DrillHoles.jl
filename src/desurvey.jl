@@ -28,14 +28,12 @@ See https://help.seequent.com/Geo/2.1/en-GB/Content/drillholes/desurveying.htm
 julia> desurvey(collar, survey, [assay, lithology])
 ```
 """
-function desurvey(collar::Collar, survey::Survey, intervals;
-                  method=:arc, convention=:auto)
+function desurvey(collar, survey, intervals; method=:arc, convention=:auto)
   # pre process information
   pars = getcolnames(survey, intervals, method, convention)
 
   # compute drillhole trajectories
-  trace = trajectories(survey, collar)
-  fillxyz!(trace, pars)
+  trace = trajectories(survey, collar, method, convention)
 
   # merge interval tables
   table = mergetables(intervals, pars)
@@ -61,7 +59,7 @@ function getcolnames(s, i, method, convention)
   (holeid=s.holeid, at=s.at, azm=s.azm, dip=s.dip, from=f, to=t, invdip=inv, tang=m)
 end
 
-function trajectories(survey, collar)
+function trajectories(survey, collar, method, convention)
   # select relevant columns of survey table
   stable = select(DataFrame(survey.table),
                   survey.holeid,
@@ -77,36 +75,45 @@ function trajectories(survey, collar)
                   collar.y => ByRow(Float64) => :Y,
                   collar.z => ByRow(Float64) => :Z)
 
-  # assign collar coordinates to initial survey point
+  # collar coordinates are at depth 0
   ctable[!,survey.at] .= 0
 
-  # join tables and sort by hole id and at
+  # join tables and sort by hole id and depth
   cols  = [survey.holeid, survey.at]
   trace = leftjoin(stable, ctable, on = cols)
   sort!(trace, cols)
-end
 
-function fillxyz!(trace, pars)
-  # get column names
-  at, az, dp, tang = pars.at, pars.azm, pars.dip, pars.tang
-  f = pars.invdip ? -1 : 1
+  # fix sign of dip angle if necessary
+  convention == :positive && (trace[!,survey.dip] *= -1)
 
-  # loop trace file
-  for i in 1:size(trace,1)
-    # pass depth 0 where collar coordinates are already available
-    trace[i,at] == 0 && continue
+  # choose a desurveying method
+  diffmethod = method == :arc ? arcmethod : tangentmethod
 
-    # get distances and angles; return increments dx,dy,dz
-    d12      = trace[i,at] - trace[i-1,at]
-    az1, dp1 = trace[i-1,az], f*trace[i-1,dp]
-    az2, dp2 = trace[i,az], f*trace[i,dp]
-    dx,dy,dz = tang ? tangentmethod(az1,dp1,az2,dp2,d12) : arcmethod(az1,dp1,az2,dp2,d12)
+  # relevant columns for calculation
+  at = trace[!,survey.at]
+  az = trace[!,survey.azm]
+  dp = trace[!,survey.dip]
+  x  = trace[!,:X]
+  y  = trace[!,:Y]
+  z  = trace[!,:Z]
 
-    # add increments dx,dy,dz to previous coordinates
-    trace[i,:X] = dx + trace[i-1,:X]
-    trace[i,:Y] = dy + trace[i-1,:Y]
-    trace[i,:Z] = dz + trace[i-1,:Z]
+  for i in 1:size(trace, 1)
+    # skip depth 0 where collar coordinates are already available
+    at[i] == 0 && continue
+
+    # compute increments dx, dy, dz
+    az1, dp1   = az[i-1], dp[i-1]
+    az2, dp2   = az[i],   dp[i]
+    d12        = at[i] - at[i-1]
+    dx, dy, dz = diffmethod(az1, dp1, az2, dp2, d12)
+
+    # add increments to previous coordinates
+    x[i] = x[i-1] + dx
+    y[i] = y[i-1] + dy
+    z[i] = z[i-1] + dz
   end
+
+  trace
 end
 
 # fill xyz for interval tables with from-to information
@@ -175,6 +182,7 @@ function arcmethod(az1, dp1, az2, dp2, d12)
   dx = 0.5*d12*(sind(dp1)*sind(az1)+sind(dp2)*sind(az2))*RF
   dy = 0.5*d12*(sind(dp1)*cosd(az1)+sind(dp2)*cosd(az2))*RF
   dz = 0.5*d12*(cosd(dp1)+cosd(dp2))*RF
+
   dx, dy, dz
 end
 
@@ -183,6 +191,7 @@ function tangentmethod(az1, dp1, az2, dp2, d12)
   dx  = d12*sind(dp1)*sind(az1)
   dy  = d12*sind(dp1)*cosd(az1)
   dz  = d12*cosd(dp1)
+
   dx, dy, dz
 end
 

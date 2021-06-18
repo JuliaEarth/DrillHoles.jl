@@ -4,43 +4,39 @@
 
 # merge interval tables
 function mergetables(intervals)
-  # get column names
-  interval = first(intervals)
-  from, to = interval.from, interval.to
-
   tabs = [i.table for i in intervals]
 
   # rename main columns if necessary
   for i in 1:length(tabs)
     t = intervals[i]
-    rename!(tabs[i], t.holeid => :HOLEID, t.from => from, t.to => to)
+    rename!(tabs[i], t.holeid => :HOLEID, t.from => :FROM, t.to => :TO)
   end
 
   # merge all tables and get unique from
-  hcols = [:HOLEID,from,to]
+  hcols = [:HOLEID,:FROM,:TO]
   out   = vcat(map(x->select(x,hcols),tabs)..., cols=:union)
-  out   = unique(vcat(select(out,[:HOLEID,from]),rename(select(out,[:HOLEID,to]), to => from), cols=:union))
-  sort!(out, [:HOLEID, from])
+  out   = unique(vcat(select(out,[:HOLEID,:FROM]),rename(select(out,[:HOLEID,:TO]), :TO => :FROM), cols=:union))
+  sort!(out, [:HOLEID, :FROM])
 
   # add unique to and calculate length
   shift = collect(2:size(out,1))
   push!(shift,1) # check if works for every case
-  out[!,to]   = out[shift,from]
+  out[!,:TO]   = out[shift,:FROM]
   out[!,:CHK] = out[shift,:HOLEID]
-  out = out[(out[!,to] .> out[!,from]) .& (out[!,:HOLEID] .== out[!,:CHK]),[:HOLEID,from,to]]
-  out[!,:LENGTH] = out[!,to] - out[!,from]
+  out = out[(out[!,:TO] .> out[!,:FROM]) .& (out[!,:HOLEID] .== out[!,:CHK]),[:HOLEID,:FROM,:TO]]
+  out[!,:LENGTH] = out[!,:TO] - out[!,:FROM]
 
   # add all tables values to the merged intervals
   cols = []
   for i in 1:length(tabs)
     push!(cols,setdiff(names(tabs[i]),string.(hcols)))
-    tabs[i][!,"_LEN$i"] = tabs[i][!,to]-tabs[i][!,from]
-    out = leftjoin(out,select(tabs[i], Not(to)),on=[:HOLEID,from],makeunique=true)
+    tabs[i][!,"_LEN$i"] = tabs[i][!,:TO]-tabs[i][!,:FROM]
+    out = leftjoin(out,select(tabs[i], Not(:TO)),on=[:HOLEID,:FROM],makeunique=true)
     select!(tabs[i], Not("_LEN$i"))
   end
 
   # leftjoin might affect order of the output after DataFrames 1.0. sort again
-  sort!(out, [:HOLEID, from])
+  sort!(out, [:HOLEID, :FROM])
 
   # loop all merged intervals and columns
   for i in 1:size(out,1)

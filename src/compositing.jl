@@ -35,7 +35,6 @@ function composite(dhf::DrillHole; interval::Number=1.0, zone=nothing,
   # copy drill hole and get column names
   dh   = copy(dhf.table)
   pars = dhf.pars
-  from, to = pars.from, pars.to
 
   # get group of intervals to composite within
   gps = []; c = 1
@@ -44,7 +43,7 @@ function composite(dhf::DrillHole; interval::Number=1.0, zone=nothing,
     i == 1 && continue
 
     # check gaps, holes and zones to create/separate different groups
-    t1 = (dh[i-1,to] - dh[i,from]) > gap
+    t1 = (dh[i-1,:TO] - dh[i,:FROM]) > gap
     t2 = dh[i-1,:HOLEID] != dh[i,:HOLEID]
     t3 = isnothing(zone) ? false : !isequal(dh[i-1,zone], dh[i,zone])
     (t1 || t2 || t3) && (c += 1)
@@ -52,7 +51,7 @@ function composite(dhf::DrillHole; interval::Number=1.0, zone=nothing,
   end
 
   # get numeric columns to composite and retain main columns
-  maincols = Symbol.([:HOLEID,from,to,:LENGTH])
+  maincols = Symbol.([:HOLEID,:FROM,:TO,:LENGTH])
   zone != nothing && push!(maincols,Symbol(zone))
   num     = eltype.(eachcol(dh)) .<: Union{Missing, Number}
   numcols = setdiff(Symbol.(names(dh))[num],maincols)
@@ -86,8 +85,8 @@ function composite(dhf::DrillHole; interval::Number=1.0, zone=nothing,
       minfrom = minimum(grp[!,:FROM])
       maxto   = maximum(grp[!,:TO])
 
-      tab[!,from]     = collect(minfrom:intlen:maxto)[1:nbint]
-      tab[!,to]       = tab[!,from] .+ intlen
+      tab[!,:FROM]     = collect(minfrom:intlen:maxto)[1:nbint]
+      tab[!,:TO]       = tab[!,:FROM] .+ intlen
       tab[!,:HOLEID]      .= grp[1,:HOLEID]
       tab[!,:LENGTH] .= intlen
       zone != nothing && (tab[!,zone] .= grp[1,zone])
@@ -103,11 +102,11 @@ function composite(dhf::DrillHole; interval::Number=1.0, zone=nothing,
       minfrom = minimum(grp[!,:FROM])
       maxto   = maximum(grp[!,:TO])
 
-      tab[!,from]    = collect(minfrom:interval:maxto)[1:nbint]
-      tab[!,to]      = tab[!,from] .+ interval
-      tab[end,to]   -= (interval-last)
+      tab[!,:FROM]    = collect(minfrom:interval:maxto)[1:nbint]
+      tab[!,:TO]      = tab[!,:FROM] .+ interval
+      tab[end,:TO]   -= (interval-last)
       tab[!,:HOLEID]     .= grp[1,:HOLEID]
-      tab[!,:LENGTH] = tab[!,to] - tab[!,from]
+      tab[!,:LENGTH] = tab[!,:TO] - tab[!,:FROM]
       zone != nothing && (tab[!,zone] .= grp[1,zone])
     end
 
@@ -118,15 +117,15 @@ function composite(dhf::DrillHole; interval::Number=1.0, zone=nothing,
     allowmissing!(tab, numcols)
 
     # averaging numeric values for each composited interval
-    wcols = union(Symbol.([from,to]), numcols)
+    wcols = union(Symbol.([:FROM,:TO]), numcols)
     for i in 1:size(tab,1)
-      f, t = tab[i,from], tab[i,to]
-      vals = grp[(grp[!,to] .> f) .& (grp[!,from] .< t), wcols]
+      f, t = tab[i,:FROM], tab[i,:TO]
+      vals = grp[(grp[!,:TO] .> f) .& (grp[!,:FROM] .< t), wcols]
       size(vals,1) == 0 && (tab[i,col] = missing)
       size(vals,1) == 0 && continue
-      vals[1,from] = f
-      vals[end,to] = t
-      leng = vals[:,to]-vals[:,from]
+      vals[1,:FROM] = f
+      vals[end,:TO] = t
+      leng = vals[:,:TO]-vals[:,:FROM]
       for col in numcols
         ivalid = findall(!ismissing,vals[!,col])
         n = length(ivalid)

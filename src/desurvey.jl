@@ -121,7 +121,6 @@ end
 function fillxyz!(tab, trace, pars)
   # get column names
   tang = pars.tang
-  from = pars.from
   f = pars.invdip ? -1 : 1
 
   # initialize coordinate columns with float values
@@ -136,7 +135,7 @@ function fillxyz!(tab, trace, pars)
   # loop all intervals
   for i in 1:size(tab,1)
     # get hole name and mid point depth
-    bhid, atx = tab[i,:HOLEID], tab[i,from]+tab[i,:LENGTH]/2
+    bhid, atx = tab[i,:HOLEID], tab[i,:FROM]+tab[i,:LENGTH]/2
     # update trace if hole name is different than previous one
     bhid != lastbhid && (dht = trace[(trace[!,:HOLEID] .== bhid),:])
     lastbhid = bhid
@@ -218,7 +217,7 @@ function weightedangs(angs1,angs2,d12,d1x)
 end
 
 # find survey depths bounding given depth
-function findbounds(depths::AbstractArray, at)
+function findbounds(depths, at)
   # get closest survey
   nearid = findmin(abs.(depths.-at))[2]
   nearest = depths[nearid]

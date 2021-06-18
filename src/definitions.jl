@@ -48,15 +48,13 @@ Base.@kwdef struct Interval
 end
 
 """
-    DrillHole(table, trace, pars, warns)
+    DrillHole(table, trace, pars)
 
 Drill hole object. `table` stores the desurveyed data. `trace` and `pars` store
-parameters for eventual post-processing or later drill hole compositing. `warns`
-report possible problems with input files.
+parameters for eventual post-processing or later drill hole compositing.
 """
 struct DrillHole
   table
   trace
   pars
-  warns
 end

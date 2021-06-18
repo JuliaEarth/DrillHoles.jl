@@ -12,7 +12,6 @@ include("definitions.jl")
 include("compositing.jl")
 include("desurvey.jl")
 include("mergetables.jl")
-include("validations.jl")
 
 export
   composite,

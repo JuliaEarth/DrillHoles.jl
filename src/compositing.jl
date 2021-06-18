@@ -144,5 +144,5 @@ function composite(dhf::DrillHole; interval::Number=1.0, zone=nothing,
 
   # add coordinates to the composites and return a drill hole object
   fillxyz!(comps, dhf.trace, pars)
-  DrillHole(comps, dhf.trace, pars, dhf.warns)
+  DrillHole(comps, dhf.trace, pars)
 end

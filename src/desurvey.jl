@@ -12,8 +12,6 @@ The intervals can be passed as a single `Interval` or as an array of
 function drillhole(collar::Collar,survey::Survey,intervals)
 	# pre process information
 	pars  = getcolnames(survey,intervals)
-	warns = validations(collar, survey, intervals)
-	in("Error",warns[:,:TYPE]) && (return DrillHole(nothing,nothing,pars,warns))
 
 	# create trace information
 	trace = gettrace(collar, survey)
@@ -23,7 +21,7 @@ function drillhole(collar::Collar,survey::Survey,intervals)
 	table = mergetables(intervals, pars)
 	fillxyz!(table, trace, pars)
 
-	DrillHole(table,trace,pars,warns)
+	DrillHole(table,trace,pars)
 end
 
 function getcolnames(s,i)

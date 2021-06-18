@@ -8,7 +8,7 @@ using CSV
 using DataFrames
 using StatsBase: mean, weights
 
-include("definitions.jl")
+include("tables.jl")
 include("desurvey.jl")
 include("compositing.jl")
 include("mergetables.jl")

@@ -9,15 +9,18 @@ using DataFrames
 using StatsBase: mean, weights
 
 include("definitions.jl")
-include("compositing.jl")
 include("desurvey.jl")
+include("compositing.jl")
 include("mergetables.jl")
 
 export
-  composite,
-  drillhole,
+  # types
   Collar,
   Survey,
-  Interval
+  Interval,
+
+  # functions
+  desurvey,
+  composite
 
 end

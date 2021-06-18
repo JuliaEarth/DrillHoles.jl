@@ -11,7 +11,7 @@ using Test
     lithos = Interval(table=DataFrame(HOLEID=[1,2,2], FROM=[0,0,4.4], TO=[8,4.4,8], L=["A","B","C"]))
 
     # drill hole desurvey tests
-    dh  = drillhole(collar, survey, [assays, lithos])
+    dh  = desurvey(collar, survey, [assays, lithos])
     tab = dh.table
 
     @test size(tab, 1) == 6
@@ -62,7 +62,7 @@ using Test
                     method=:tangential, convention=:auto)
 
     # drill hole desurvey tests
-    dh  = drillhole(collar, survey, [assays, lithos])
+    dh  = desurvey(collar, survey, [assays, lithos])
     tab = dh.table
 
     @test dh.pars.invdip == true

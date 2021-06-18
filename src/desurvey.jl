@@ -54,9 +54,9 @@ function getcolnames(s, i, method, convention)
     c  = sum(sign.(df[!,s.dip])) > 0 ? :positive : :negative
   end
 
-  inv  = (c == :positive)
+  inv = (c == :positive)
 
-  (holeid=s.holeid, at=s.at, azm=s.azm, dip=s.dip, from=f, to=t, invdip=inv, tang=m)
+  (from=f, to=t, invdip=inv, tang=m)
 end
 
 function trajectories(survey, collar, method, convention)
@@ -84,7 +84,7 @@ function trajectories(survey, collar, method, convention)
   trace = leftjoin(stable, ctable, on = cols)
   sort!(trace, cols)
 
-  # fix sign of dip angle if necessary
+  # flip sign of dip angle if necessary
   convention == :positive && (trace[!,:DIP] *= -1)
 
   # choose a desurveying method
@@ -120,8 +120,8 @@ end
 # fill xyz for interval tables with from-to information
 function fillxyz!(tab, trace, pars)
   # get column names
-  bh, at, az, dp, tang = pars.holeid, pars.at, pars.azm, pars.dip, pars.tang
-  from, to = pars.from, pars.to
+  tang = pars.tang
+  from = pars.from
   f = pars.invdip ? -1 : 1
 
   # initialize coordinate columns with float values
@@ -130,22 +130,22 @@ function fillxyz!(tab, trace, pars)
   tab[!,:Z] .= -9999.9999
 
   # get first hole name and get trace of that hole
-  lastbhid = tab[1,bh]
-  dht = trace[(trace[!,bh] .== lastbhid),:]
+  lastbhid = tab[1,:HOLEID]
+  dht = trace[(trace[!,:HOLEID] .== lastbhid),:]
 
   # loop all intervals
   for i in 1:size(tab,1)
     # get hole name and mid point depth
-    bhid, atx = tab[i,bh], tab[i,from]+tab[i,:LENGTH]/2
+    bhid, atx = tab[i,:HOLEID], tab[i,from]+tab[i,:LENGTH]/2
     # update trace if hole name is different than previous one
-    bhid != lastbhid && (dht = trace[(trace[!,bh] .== bhid),:])
+    bhid != lastbhid && (dht = trace[(trace[!,:HOLEID] .== bhid),:])
     lastbhid = bhid
     # pass if no survey is available (WARN)
     size(dht, 1) == 0 && continue
 
     # get surveys bounding given depth
-    b   = findbounds(dht[:,at],atx)
-    d1x = atx-dht[b[1],at]
+    b   = findbounds(dht[:,:AT],atx)
+    d1x = atx-dht[b[1],:AT]
 
     if d1x == 0
       # if interval depth matches trace depth, get trace coordinates
@@ -154,9 +154,9 @@ function fillxyz!(tab, trace, pars)
       tab[i,:Z] = dht[b[1],:Z]
     else
       # if not, calculate coordinates increments dx,dy,dz
-      d12 = dht[b[2],at]-dht[b[1],at]
-      az1, dp1 = dht[b[1],az], f*dht[b[1],dp]
-      az2, dp2 = dht[b[2],az], f*dht[b[2],dp]
+      d12 = dht[b[2],:AT]-dht[b[1],:AT]
+      az1, dp1 = dht[b[1],:AZM], f*dht[b[1],:DIP]
+      az2, dp2 = dht[b[2],:AZM], f*dht[b[2],:DIP]
       azx, dpx = b[1]==b[2] ? (az2, dp2) : weightedangs([az1,dp1],[az2,dp2],d12,d1x)
       dx,dy,dz = tang ? tangentmethod(az1,dp1,azx,dpx,d1x) : arcmethod(az1,dp1,azx,dpx,d1x)
 

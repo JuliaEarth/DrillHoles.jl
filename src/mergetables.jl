@@ -5,28 +5,28 @@
 # merge interval tables
 function mergetables(intervals, pars)
   # get column names
-  bh, from, to = pars.holeid, pars.from, pars.to
+  from, to = pars.from, pars.to
 
   tabs = [i.table for i in intervals]
 
   # rename main columns if necessary
   for i in 1:length(tabs)
     t = intervals[i]
-    rename!(tabs[i], t.holeid => bh, t.from => from, t.to => to)
+    rename!(tabs[i], t.holeid => :HOLEID, t.from => from, t.to => to)
   end
 
   # merge all tables and get unique from
-  hcols = [bh,from,to]
+  hcols = [:HOLEID,from,to]
   out   = vcat(map(x->select(x,hcols),tabs)..., cols=:union)
-  out   = unique(vcat(select(out,[bh,from]),rename(select(out,[bh,to]), to => from), cols=:union))
-  sort!(out, [bh, from])
+  out   = unique(vcat(select(out,[:HOLEID,from]),rename(select(out,[:HOLEID,to]), to => from), cols=:union))
+  sort!(out, [:HOLEID, from])
 
   # add unique to and calculate length
   shift = collect(2:size(out,1))
   push!(shift,1) # check if works for every case
   out[!,to]   = out[shift,from]
-  out[!,:CHK] = out[shift,bh]
-  out = out[(out[!,to] .> out[!,from]) .& (out[!,bh] .== out[!,:CHK]),[bh,from,to]]
+  out[!,:CHK] = out[shift,:HOLEID]
+  out = out[(out[!,to] .> out[!,from]) .& (out[!,:HOLEID] .== out[!,:CHK]),[:HOLEID,from,to]]
   out[!,:LENGTH] = out[!,to] - out[!,from]
 
   # add all tables values to the merged intervals
@@ -34,12 +34,12 @@ function mergetables(intervals, pars)
   for i in 1:length(tabs)
     push!(cols,setdiff(names(tabs[i]),string.(hcols)))
     tabs[i][!,"_LEN$i"] = tabs[i][!,to]-tabs[i][!,from]
-    out = leftjoin(out,select(tabs[i], Not(to)),on=[bh,from],makeunique=true)
+    out = leftjoin(out,select(tabs[i], Not(to)),on=[:HOLEID,from],makeunique=true)
     select!(tabs[i], Not("_LEN$i"))
   end
 
   # leftjoin might affect order of the output after DataFrames 1.0. sort again
-  sort!(out, [bh, from])
+  sort!(out, [:HOLEID, from])
 
   # loop all merged intervals and columns
   for i in 1:size(out,1)

@@ -35,7 +35,7 @@ function composite(dhf::DrillHole; interval::Number=1.0, zone=nothing,
   # copy drill hole and get column names
   dh   = copy(dhf.table)
   pars = dhf.pars
-  bh, from, to = pars.holeid, pars.from, pars.to
+  from, to = pars.from, pars.to
 
   # get group of intervals to composite within
   gps = []; c = 1
@@ -45,14 +45,14 @@ function composite(dhf::DrillHole; interval::Number=1.0, zone=nothing,
 
     # check gaps, holes and zones to create/separate different groups
     t1 = (dh[i-1,to] - dh[i,from]) > gap
-    t2 = dh[i-1,bh] != dh[i,bh]
+    t2 = dh[i-1,:HOLEID] != dh[i,:HOLEID]
     t3 = isnothing(zone) ? false : !isequal(dh[i-1,zone], dh[i,zone])
     (t1 || t2 || t3) && (c += 1)
     push!(gps,c)
   end
 
   # get numeric columns to composite and retain main columns
-  maincols = Symbol.([bh,from,to,:LENGTH])
+  maincols = Symbol.([:HOLEID,from,to,:LENGTH])
   zone != nothing && push!(maincols,Symbol(zone))
   num     = eltype.(eachcol(dh)) .<: Union{Missing, Number}
   numcols = setdiff(Symbol.(names(dh))[num],maincols)
@@ -88,7 +88,7 @@ function composite(dhf::DrillHole; interval::Number=1.0, zone=nothing,
 
       tab[!,from]     = collect(minfrom:intlen:maxto)[1:nbint]
       tab[!,to]       = tab[!,from] .+ intlen
-      tab[!,bh]      .= grp[1,bh]
+      tab[!,:HOLEID]      .= grp[1,:HOLEID]
       tab[!,:LENGTH] .= intlen
       zone != nothing && (tab[!,zone] .= grp[1,zone])
 
@@ -106,7 +106,7 @@ function composite(dhf::DrillHole; interval::Number=1.0, zone=nothing,
       tab[!,from]    = collect(minfrom:interval:maxto)[1:nbint]
       tab[!,to]      = tab[!,from] .+ interval
       tab[end,to]   -= (interval-last)
-      tab[!,bh]     .= grp[1,bh]
+      tab[!,:HOLEID]     .= grp[1,:HOLEID]
       tab[!,:LENGTH] = tab[!,to] - tab[!,from]
       zone != nothing && (tab[!,zone] .= grp[1,zone])
     end

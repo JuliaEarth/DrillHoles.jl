@@ -29,22 +29,18 @@ julia> desurvey(collar, survey, [assay, lithology])
 ```
 """
 function desurvey(collar, survey, intervals; method=:arc, convention=:auto)
-  # pre process information
-  pars = getcolnames(survey, intervals, method, convention)
-
   # compute drillhole trajectories
   trace = trajectories(survey, collar, method, convention)
 
   # merge interval tables
+  pars = getcolnames(survey, method, convention)
   table = mergetables(intervals)
   fillxyz!(table, trace, pars)
 
   DrillHole(table, trace, pars)
 end
 
-function getcolnames(s, i, method, convention)
-  f = first(i).from
-  t = first(i).to
+function getcolnames(s, method, convention)
   m = method == :tangent
   c = convention
 
@@ -56,7 +52,7 @@ function getcolnames(s, i, method, convention)
 
   inv = (c == :positive)
 
-  (from=f, to=t, invdip=inv, tang=m)
+  (invdip=inv, tang=m)
 end
 
 function trajectories(survey, collar, method, convention)

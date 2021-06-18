@@ -83,28 +83,6 @@ function gettrace(c, s)
   sort!(trace, [s.holeid,s.at])
 end
 
-# minimum curvature desurvey method
-function mincurv(az1, dp1, az2, dp2, d12)
-  dp1, dp2 = (90-dp1), (90-dp2)
-
-  DL = acos(cosd(dp2-dp1)-sind(dp1)*sind(dp2)*(1-cosd(az2-az1)))
-  RF = DL!=0.0 ? 2*tan(DL/2)/DL : 1
-
-  dx = 0.5*d12*(sind(dp1)*sind(az1)+sind(dp2)*sind(az2))*RF
-  dy = 0.5*d12*(sind(dp1)*cosd(az1)+sind(dp2)*cosd(az2))*RF
-  dz = 0.5*d12*(cosd(dp1)+cosd(dp2))*RF
-  dx, dy, dz
-end
-
-# tangential desurvey method
-function tangential(az1, dp1, d12)
-  dp1 = (90-dp1)
-  dx  = d12*sind(dp1)*sind(az1)
-  dy  = d12*sind(dp1)*cosd(az1)
-  dz  = d12*cosd(dp1)
-  dx, dy, dz
-end
-
 # find survey depths bounding given depth
 function findbounds(depths::AbstractArray, at)
   # get closest survey
@@ -156,7 +134,7 @@ function fillxyz!(trace, pars)
     d12      = trace[i,at] - trace[i-1,at]
     az1, dp1 = trace[i-1,az], f*trace[i-1,dp]
     az2, dp2 = trace[i,az], f*trace[i,dp]
-    dx,dy,dz = tang ? tangential(az1,dp1,d12) : mincurv(az1,dp1,az2,dp2,d12)
+    dx,dy,dz = tang ? tangentmethod(az1,dp1,d12) : arcmethod(az1,dp1,az2,dp2,d12)
 
     # add increments dx,dy,dz to previous coordinates
     trace[i,:X] = dx + trace[i-1,:X]
@@ -206,7 +184,7 @@ function fillxyz!(tab, trace, pars)
       az1, dp1 = dht[b[1],az], f*dht[b[1],dp]
       az2, dp2 = dht[b[2],az], f*dht[b[2],dp]
       azx, dpx = b[1]==b[2] ? (az2, dp2) : weightedangs([az1,dp1],[az2,dp2],d12,d1x)
-      dx,dy,dz = tang ? tangential(az1,dp1,d1x) : mincurv(az1,dp1,azx,dpx,d1x)
+      dx,dy,dz = tang ? tangentmethod(az1,dp1,d1x) : arcmethod(az1,dp1,azx,dpx,d1x)
 
       # add increments dx,dy,dz to trace coordinates
       tab[i,:X] = dx + dht[b[1],:X]
@@ -216,4 +194,28 @@ function fillxyz!(tab, trace, pars)
   end
   # check if some coordinate was not filled and return a warning if necessary
   filter!(row -> row.X != -9999.9999, tab)
+end
+
+# --------------------
+# DESURVEYING METHODS
+# --------------------
+
+function arcmethod(az1, dp1, az2, dp2, d12)
+  dp1, dp2 = (90-dp1), (90-dp2)
+
+  DL = acos(cosd(dp2-dp1)-sind(dp1)*sind(dp2)*(1-cosd(az2-az1)))
+  RF = DL!=0.0 ? 2*tan(DL/2)/DL : 1
+
+  dx = 0.5*d12*(sind(dp1)*sind(az1)+sind(dp2)*sind(az2))*RF
+  dy = 0.5*d12*(sind(dp1)*cosd(az1)+sind(dp2)*cosd(az2))*RF
+  dz = 0.5*d12*(cosd(dp1)+cosd(dp2))*RF
+  dx, dy, dz
+end
+
+function tangentmethod(az1, dp1, d12)
+  dp1 = (90-dp1)
+  dx  = d12*sind(dp1)*sind(az1)
+  dy  = d12*sind(dp1)*cosd(az1)
+  dz  = d12*cosd(dp1)
+  dx, dy, dz
 end

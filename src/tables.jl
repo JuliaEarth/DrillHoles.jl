@@ -32,8 +32,6 @@ end
     Interval(table, holeid=:HOLEID, from=:FROM, to=:TO)
 
 Interval table and its main column fields.
-
-Examples of interval tables are lithological and assay tables.
 """
 Base.@kwdef struct Interval
   table

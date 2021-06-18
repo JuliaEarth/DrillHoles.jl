@@ -6,19 +6,19 @@
     desurvey(collar, survey, intervals; method=:arc, convention=:auto)
 
 Desurvey drill holes based on `collar`, `survey` and `intervals` tables
-using a given `method`. Optionally, specify a `convention` for the dip
-angles.
+using a given step `method`. Optionally, specify a `convention` for the
+dip angles.
 
 ## Methods
 
-* `:arc`     - spherical arc approximation
-* `:tangent` - raw tanget approximation
+* `:arc` - spherical arc step
+* `:tan` - simple tanget step
 
 See https://help.seequent.com/Geo/2.1/en-GB/Content/drillholes/desurveying.htm
 
 ## Conventions
 
-* `:auto`     - assumes that the most frequent dip sign points downwards
+* `:auto`     - most frequent dip sign points downwards
 * `:positive` - positive dip sign points downwards
 * `:negative` - negative dip sign points downwards
 
@@ -29,6 +29,10 @@ julia> desurvey(collar, survey, [assay, lithology])
 ```
 """
 function desurvey(collar, survey, intervals; method=:arc, convention=:auto)
+  # sanity checks
+  @assert method ∈ [:arc, :tan] "invalid step method"
+  @assert convention ∈ [:auto, :positive, :negative] "invalid convention"
+
   # compute drillhole trajectories
   trace = trajectories(survey, collar, method, convention)
 
@@ -41,7 +45,7 @@ function desurvey(collar, survey, intervals; method=:arc, convention=:auto)
 end
 
 function getcolnames(s, method, convention)
-  m = method == :tangent
+  m = method == :tan
   c = convention
 
   # get most common dip sign and assume it is downwards
@@ -83,8 +87,8 @@ function trajectories(survey, collar, method, convention)
   # flip sign of dip angle if necessary
   convention == :positive && (trace[!,:DIP] *= -1)
 
-  # choose a desurveying method
-  diffmethod = method == :arc ? arcmethod : tangentmethod
+  # choose a step method
+  step = method == :arc ? arcstep : tanstep
 
   # relevant columns for calculation
   at = trace[!,:AT]
@@ -102,7 +106,7 @@ function trajectories(survey, collar, method, convention)
     az1, dp1   = az[i-1], dp[i-1]
     az2, dp2   = az[i],   dp[i]
     d12        = at[i] - at[i-1]
-    dx, dy, dz = diffmethod(az1, dp1, az2, dp2, d12)
+    dx, dy, dz = step(az1, dp1, az2, dp2, d12)
 
     # add increments to previous coordinates
     x[i] = x[i-1] + dx
@@ -153,7 +157,7 @@ function fillxyz!(tab, trace, pars)
       az1, dp1 = dht[b[1],:AZM], f*dht[b[1],:DIP]
       az2, dp2 = dht[b[2],:AZM], f*dht[b[2],:DIP]
       azx, dpx = b[1]==b[2] ? (az2, dp2) : weightedangs([az1,dp1],[az2,dp2],d12,d1x)
-      dx,dy,dz = tang ? tangentmethod(az1,dp1,azx,dpx,d1x) : arcmethod(az1,dp1,azx,dpx,d1x)
+      dx,dy,dz = tang ? tanstep(az1,dp1,azx,dpx,d1x) : arcstep(az1,dp1,azx,dpx,d1x)
 
       # add increments dx,dy,dz to trace coordinates
       tab[i,:X] = dx + dht[b[1],:X]
@@ -165,29 +169,25 @@ function fillxyz!(tab, trace, pars)
   filter!(row -> row.X != -9999.9999, tab)
 end
 
-# --------------------
-# DESURVEYING METHODS
-# --------------------
+# -------------
+# STEP METHODS
+# -------------
 
-function arcmethod(az1, dp1, az2, dp2, d12)
+function arcstep(az1, dp1, az2, dp2, d12)
   dp1, dp2 = (90-dp1), (90-dp2)
-
   DL = acos(cosd(dp2-dp1)-sind(dp1)*sind(dp2)*(1-cosd(az2-az1)))
   RF = DL!=0.0 ? 2*tan(DL/2)/DL : 1
-
   dx = 0.5*d12*(sind(dp1)*sind(az1)+sind(dp2)*sind(az2))*RF
   dy = 0.5*d12*(sind(dp1)*cosd(az1)+sind(dp2)*cosd(az2))*RF
   dz = 0.5*d12*(cosd(dp1)+cosd(dp2))*RF
-
   dx, dy, dz
 end
 
-function tangentmethod(az1, dp1, az2, dp2, d12)
+function tanstep(az1, dp1, az2, dp2, d12)
   dp1 = (90-dp1)
   dx  = d12*sind(dp1)*sind(az1)
   dy  = d12*sind(dp1)*cosd(az1)
   dz  = d12*cosd(dp1)
-
   dx, dy, dz
 end
 

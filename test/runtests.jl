@@ -60,7 +60,7 @@ using Test
     survey = Survey(table=DataFrame(HOLEID=[1,1,2,2], AT=[0,5,0,5], AZM=[0,1,20,21], DIP=[89,88,77,76]))
 
     # drill hole desurvey tests
-    dh  = desurvey(collar, survey, [assays, lithos], method = :tangent, convention = :auto)
+    dh  = desurvey(collar, survey, [assays, lithos], method = :tan, convention = :auto)
     tab = dh.table
 
     @test dh.pars.invdip == true

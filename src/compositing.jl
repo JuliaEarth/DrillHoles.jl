@@ -3,8 +3,7 @@
 # ------------------------------------------------------------------
 
 """
-    composite(dh::DrillHole; interval=1.0, zone=nothing, mode=:equalcomp,
-    mincomp=0.5, gap=0.001)
+    composite(dh::DrillHole; interval=1.0, zone=nothing, mode=:equalcomp, mincomp=0.5, gap=0.001)
 
 Composite a drill hole object considering the given parameters. Outputs a
 new composited `DrillHole` object.
@@ -14,25 +13,25 @@ new composited `DrillHole` object.
 * `dh`       - desurveyed drill hole
 * `interval` - composite length
 * `zone`     - zone column name; if considered, intervals composited together
-  must have the same zone value
+must have the same zone value
 * `mode`     - method for compositing (see below the options available)
 * `mincomp`  - minimum composite lenght; smaller intervals are discarded.
 * `gap`      - two intervals are not composited together if the spacing between
-  them exceeds the `gap` value
+them exceeds the `gap` value
 
 ## Methods:
 
 * `:equalcomp` - seeks to create composites with the exact `interval` length;
-  borders are discarded if have length below `mincomp`. Max composite length = `interval`
+borders are discarded if have length below `mincomp`. Max composite length = `interval`
 * `:nodiscard` - composite lengths are defined seeking to include all possible
-  intervals with length above `mincomp`. Max composite length = 1.5*`interval`
+intervals with length above `mincomp`. Max composite length = 1.5*`interval`
 """
 function composite(dhf::DrillHole; interval::Number=1.0, zone=nothing,
-  mode=:equalcomp, mincomp=0.5, gap=0.001)
+                   mode=:equalcomp, mincomp=0.5, gap=0.001)
   # initial assertions
   @assert mode ∈ [:equalcomp, :nodiscard] "invalid method"
   @assert mincomp <= interval "mincomp must be <= interval"
-  
+
   # copy drill hole and get column names
   dh   = copy(dhf.table)
   pars = dhf.pars
@@ -68,7 +67,7 @@ function composite(dhf::DrillHole; interval::Number=1.0, zone=nothing,
   for grp in groupby(dh,:_GP_)
     # get group length and ignore it if below mincomp; create composited group table
     len = sum(grp[!,:LENGTH])
-  	len < mincomp && continue
+    len < mincomp && continue
     tab = DataFrame()
 
     # get composited intervals for :nodiscard compositing mode
@@ -93,7 +92,7 @@ function composite(dhf::DrillHole; interval::Number=1.0, zone=nothing,
       tab[!,:LENGTH] .= intlen
       zone != nothing && (tab[!,zone] .= grp[1,zone])
 
-    # get composited intervals for :equalcomp compositing mode
+      # get composited intervals for :equalcomp compositing mode
     elseif mode == :equalcomp
       div   = len/interval
       nbint = floor(Int,div)

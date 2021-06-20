@@ -27,16 +27,19 @@ function desurvey(survey, collar, intervals; method=:arc, inputdip=:auto)
   @assert method ∈ [:arc,:tan] "invalid step method"
   @assert inputdip ∈ [:auto,:down,:up] "invalid convention"
 
+  # standardize input tables
+  stable, ctable, itables = standardize(survey, collar, intervals, inputdip)
+
   # trajectory table
-  trajec = trajectories(survey, collar, method, inputdip)
+  trajec = trajectories(stable, ctable, method)
 
   # attribute table
-  attrib = interleave(intervals)
+  attrib = interleave(itables)
 
   trajec, attrib
 end
 
-function trajectories(survey, collar, method, inputdip)
+function standardize(survey, collar, intervals, inputdip)
   # select relevant columns of survey table and
   # standardize column names to HOLEID, AT, AZM, DIP
   stable = select(DataFrame(survey.table),
@@ -44,6 +47,12 @@ function trajectories(survey, collar, method, inputdip)
                   survey.at  => ByRow(Float64) => :AT,
                   survey.azm => ByRow(Float64) => :AZM,
                   survey.dip => ByRow(Float64) => :DIP)
+
+  # flip sign of dip angle if necessary
+  if inputdip == :auto
+    inputdip = sum(sign, stable.DIP) > 0 ? :down : :up
+  end
+  inputdip == :down && (stable.DIP *= -1)
 
   # select relevant columns of collar table and
   # standardize column names to HOLEID, X, Y, Z
@@ -53,30 +62,39 @@ function trajectories(survey, collar, method, inputdip)
                   collar.y => ByRow(Float64) => :Y,
                   collar.z => ByRow(Float64) => :Z)
 
+  # select all columns of interval tables and
+  # standardize column names to HOLEID, FROM, TO
+  itables = [rename(DataFrame(interval.table),
+                    interval.holeid => :HOLEID,
+                    interval.from   => :FROM,
+                    interval.to     => :TO) for interval in intervals]
+
+  stable, ctable, itables
+end
+
+function trajectories(stable, ctable, method)
   # collar coordinates are at depth 0
-  ctable[!,:AT] .= 0
+  ctableat = copy(ctable)
+  ctableat[!,:AT] .= 0
 
   # join tables and sort by hole id and depth
-  trajec = leftjoin(stable, ctable, on = [:HOLEID,:AT])
+  trajec = leftjoin(stable, ctableat, on = [:HOLEID,:AT])
   sort!(trajec, [:HOLEID,:AT])
-
-  # flip sign of dip angle if necessary
-  inputdip == :down && (trajec.DIP *= -1)
 
   # choose a step method
   step = method == :arc ? arcstep : tanstep
 
   # relevant columns
-  at, az, dp = trajec.AT, trajec.AZM, trajec.DIP
-  x,   y,  z = trajec.X,  trajec.Y,   trajec.Z
+  at, azm, dip = trajec.AT, trajec.AZM, trajec.DIP
+  x,  y,   z   = trajec.X,  trajec.Y,   trajec.Z
 
   for i in 1:size(trajec, 1)
     # skip depth 0 where collar coordinates are already available
     at[i] == 0 && continue
 
     # compute increments dx, dy, dz
-    az1, dp1   = az[i-1], dp[i-1]
-    az2, dp2   = az[i],   dp[i]
+    az1, dp1   = azm[i-1], dip[i-1]
+    az2, dp2   = azm[i],   dip[i]
     d12        = at[i] - at[i-1]
     dx, dy, dz = step(az1, dp1, az2, dp2, d12)
 
@@ -89,15 +107,9 @@ function trajectories(survey, collar, method, inputdip)
   trajec
 end
 
-function interleave(intervals)
-  # standardize column names to HOLEID, FROM, TO
-  tables = [rename(DataFrame(interval.table),
-                   interval.holeid => :HOLEID,
-                   interval.from   => :FROM,
-                   interval.to     => :TO) for interval in intervals]
-
+function interleave(itables)
   # stack tables in order to see all variables
-  table = vcat(tables..., cols = :union)
+  table = vcat(itables..., cols = :union)
 
   # intialize rows of result table
   rows = []

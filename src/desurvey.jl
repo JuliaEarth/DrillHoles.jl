@@ -155,8 +155,12 @@ function interleave(itables)
     end
   end
 
-  # return inteleaved table with columns reordered
-  select(DataFrame(rows), [:HOLEID,:FROM,:TO], Not([:HOLEID,:FROM,:TO]))
+  # concatenate rows
+  attrib = DataFrame(rows)
+
+  # reorder columns and return
+  cols = [:HOLEID,:FROM,:TO]
+  select(attrib, cols, Not(cols))
 end
 
 # -------------

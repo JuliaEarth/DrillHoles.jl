@@ -166,7 +166,7 @@ end
 function arcstep(az1, dp1, az2, dp2, d12)
   dp1, dp2 = (90-dp1), (90-dp2)
   DL = acos(cosd(dp2-dp1)-sind(dp1)*sind(dp2)*(1-cosd(az2-az1)))
-  RF = DL!=0.0 ? 2*tan(DL/2)/DL : 1
+  RF = DL != 0.0 ? 2*tan(DL/2)/DL : 1.0
   dx = 0.5*d12*(sind(dp1)*sind(az1)+sind(dp2)*sind(az2))*RF
   dy = 0.5*d12*(sind(dp1)*cosd(az1)+sind(dp2)*cosd(az2))*RF
   dz = 0.5*d12*(cosd(dp1)+cosd(dp2))*RF

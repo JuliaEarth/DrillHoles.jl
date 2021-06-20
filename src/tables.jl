@@ -39,15 +39,3 @@ Base.@kwdef struct Interval
   from::Symbol   = :FROM
   to::Symbol     = :TO
 end
-
-"""
-    DrillHole(table, trace, pars)
-
-Drill hole object. `table` stores the desurveyed data. `trace` and `pars` store
-parameters for eventual post-processing or later drill hole compositing.
-"""
-struct DrillHole
-  table
-  trace
-  pars
-end

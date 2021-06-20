@@ -4,14 +4,10 @@
 
 module DrillHoles
 
-using CSV
 using DataFrames
-using StatsBase: mean, weights
 
 include("tables.jl")
 include("desurvey.jl")
-include("compositing.jl")
-include("mergetables.jl")
 
 export
   # types
@@ -20,7 +16,6 @@ export
   Interval,
 
   # functions
-  desurvey,
-  composite
+  desurvey
 
 end

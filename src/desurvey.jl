@@ -37,26 +37,9 @@ function desurvey(collar, survey, intervals; method=:arc, convention=:auto)
   trajec = trajectories(survey, collar, method, convention)
 
   # attribute table
-  pars = getcolnames(survey, method, convention)
-  attrib = mergetables(intervals)
-  fillxyz!(attrib, trajec, pars)
+  attrib = interleave(intervals)
 
-  DrillHole(attrib, trajec, pars)
-end
-
-function getcolnames(s, method, convention)
-  m = method == :tan
-  c = convention
-
-  # get most common dip sign and assume it is downwards
-  if c == :auto
-    df = s.table
-    c  = sum(sign.(df[!,s.dip])) > 0 ? :positive : :negative
-  end
-
-  inv = (c == :positive)
-
-  (invdip=inv, tang=m)
+  trajec, attrib
 end
 
 function trajectories(survey, collar, method, convention)
@@ -112,56 +95,53 @@ function trajectories(survey, collar, method, convention)
   trajec
 end
 
-# fill xyz for interval tables with from-to information
-function fillxyz!(tab, trace, pars)
-  # get column names
-  tang = pars.tang
-  f = pars.invdip ? -1 : 1
+function interleave(intervals)
+  # standardize column names to HOLEID, FROM, TO
+  tables = [rename(DataFrame(interval.table),
+                   interval.holeid => :HOLEID,
+                   interval.from   => :FROM,
+                   interval.to     => :TO) for interval in intervals]
 
-  # initialize coordinate columns with float values
-  tab[!,:X] .= -9999.9999
-  tab[!,:Y] .= -9999.9999
-  tab[!,:Z] .= -9999.9999
+  # stack tables in order to see all variables
+  table = vcat(tables..., cols = :union)
 
-  # get first hole name and get trace of that hole
-  lastbhid = tab[1,:HOLEID]
-  dht = trace[(trace[!,:HOLEID] .== lastbhid),:]
+  # intialize rows of result table
+  rows = []
 
-  # loop all intervals
-  for i in 1:size(tab,1)
-    # get hole name and mid point depth
-    bhid, atx = tab[i,:HOLEID], tab[i,:FROM]+tab[i,:LENGTH]/2
-    # update trace if hole name is different than previous one
-    bhid != lastbhid && (dht = trace[(trace[!,:HOLEID] .== bhid),:])
-    lastbhid = bhid
-    # pass if no survey is available (WARN)
-    size(dht, 1) == 0 && continue
+  # process each drillhole separately
+  for hole in groupby(table, :HOLEID)
+    # save hole id for later
+    holeid = first(hole.HOLEID)
 
-    # get surveys bounding given depth
-    b   = findbounds(dht[:,:AT],atx)
-    d1x = atx-dht[b[1],:AT]
+    # find all possible depths
+    depths = [hole.FROM; hole.TO] |> unique |> sort
 
-    if d1x == 0
-      # if interval depth matches trace depth, get trace coordinates
-      tab[i,:X] = dht[b[1],:X]
-      tab[i,:Y] = dht[b[1],:Y]
-      tab[i,:Z] = dht[b[1],:Z]
-    else
-      # if not, calculate coordinates increments dx,dy,dz
-      d12 = dht[b[2],:AT]-dht[b[1],:AT]
-      az1, dp1 = dht[b[1],:AZM], f*dht[b[1],:DIP]
-      az2, dp2 = dht[b[2],:AZM], f*dht[b[2],:DIP]
-      azx, dpx = b[1]==b[2] ? (az2, dp2) : weightedangs([az1,dp1],[az2,dp2],d12,d1x)
-      dx,dy,dz = tang ? tanstep(az1,dp1,azx,dpx,d1x) : arcstep(az1,dp1,azx,dpx,d1x)
+    # loop over all sub-intervals
+    for i in 2:length(depths)
+      # current sub-interval
+      from, to = depths[i-1], depths[i]
 
-      # add increments dx,dy,dz to trace coordinates
-      tab[i,:X] = dx + dht[b[1],:X]
-      tab[i,:Y] = dy + dht[b[1],:Y]
-      tab[i,:Z] = dz + dht[b[1],:Z]
+      # intialize row with metadata
+      row = Dict{Symbol,Any}(:HOLEID => holeid, :FROM => from, :TO => to)
+
+      # find all intervals which contain sub-interval
+      samples = filter(I -> I.FROM ≤ from && to ≤ I.TO, hole, view = true)
+
+      # fill values when that is possible assuming homogeneity
+      props = select(samples, Not([:HOLEID,:FROM,:TO]))
+      for name in propertynames(props)
+        ind = findfirst(!ismissing, props[!,name])
+        val = isnothing(ind) ? missing : props[ind,name]
+        row[name] = val
+      end
+
+      # save row and continue
+      push!(rows, row)
     end
   end
-  # check if some coordinate was not filled and return a warning if necessary
-  filter!(row -> row.X != -9999.9999, tab)
+
+  # return inteleaved table with columns reordered
+  select(DataFrame(rows), [:HOLEID,:FROM,:TO], Not([:HOLEID,:FROM,:TO]))
 end
 
 # -------------
@@ -184,40 +164,4 @@ function tanstep(az1, dp1, az2, dp2, d12)
   dy  = d12*sind(dp1)*cosd(az1)
   dz  = d12*cosd(dp1)
   dx, dy, dz
-end
-
-# -----------------
-# HELPER FUNCTIONS
-# -----------------
-
-# convert survey angles to 3D vector and vice versa
-angs2vec(azm, dip) = (sind(azm)*cosd(-dip), cosd(azm)*cosd(-dip), sind(-dip))
-vec2angs(x, y, z)  = (atand(x, y), -asind(z))
-
-# average angle between two surveyed intervals
-function weightedangs(angs1,angs2,d12,d1x)
-  v1 = angs2vec(angs1...)
-  v2 = angs2vec(angs2...)
-
-  # weight according to distance to surveys
-  p2   = d1x / d12
-  p1   = 1 - p2
-  v12  = @. p1*v1 + p2*v2
-
-  vec2angs(v12...)
-end
-
-# find survey depths bounding given depth
-function findbounds(depths, at)
-  # get closest survey
-  nearid = findmin(abs.(depths.-at))[2]
-  nearest = depths[nearid]
-
-  # check if depth is after last interval
-  nearid == length(depths) && nearest < at && return (nearid,nearid)
-
-  # return (previous, next) survey ids for given depth
-  nearest == at && return (nearid, nearid)
-  nearest >  at && return (nearid-1, nearid)
-  nearest <  at && return (nearid, nearid+1)
 end

@@ -11,8 +11,9 @@ include("desurvey.jl")
 
 export
   # types
-  Collar,
+  MiningTable,
   Survey,
+  Collar,
   Interval,
 
   # functions

@@ -3,39 +3,55 @@
 # ------------------------------------------------------------------
 
 """
-    Collar(table, holeid=:HOLEID, x=:X, y=:Y, z=:Z)
+    MiningTable
 
-Collar table and its main column fields.
+A table from the mining industry (e.g. survey, collar, interval).
 """
-Base.@kwdef struct Collar
-  table
-  holeid::Symbol = :HOLEID
-  x::Symbol      = :X
-  y::Symbol      = :Y
-  z::Symbol      = :Z
-end
+abstract type MiningTable end
 
 """
     Survey(table, holeid=:HOLEID, at=:AT, azm=:AZM, dip=:DIP)
 
 Survey table and its main columns fields.
 """
-Base.@kwdef struct Survey
-  table
-  holeid::Symbol     = :HOLEID
-  at::Symbol         = :AT
-  azm::Symbol        = :AZM
-  dip::Symbol        = :DIP
+struct Survey{𝒯} <: MiningTable
+  table::𝒯
+  holeid::Symbol
+  at::Symbol
+  azm::Symbol
+  dip::Symbol
 end
+
+Survey(table; holeid=:HOLEID, at=:AT, azm=:AZM, dip=:DIP) =
+  Survey(table, holeid, at, azm, dip)
+
+"""
+    Collar(table, holeid=:HOLEID, x=:X, y=:Y, z=:Z)
+
+Collar table and its main column fields.
+"""
+struct Collar{𝒯} <: MiningTable
+  table::𝒯
+  holeid::Symbol
+  x::Symbol
+  y::Symbol
+  z::Symbol
+end
+
+Collar(table; holeid=:HOLEID, x=:X, y=:Y, z=:Z) =
+  Collar(table, holeid, x, y, z)
 
 """
     Interval(table, holeid=:HOLEID, from=:FROM, to=:TO)
 
 Interval table and its main column fields.
 """
-Base.@kwdef struct Interval
-  table
-  holeid::Symbol = :HOLEID
-  from::Symbol   = :FROM
-  to::Symbol     = :TO
+struct Interval{𝒯} <: MiningTable
+  table::𝒯
+  holeid::Symbol
+  from::Symbol
+  to::Symbol
 end
+
+Interval(table; holeid=:HOLEID, from=:FROM, to=:TO) =
+  Interval(table, holeid, from, to)

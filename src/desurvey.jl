@@ -179,8 +179,9 @@ function position(attrib, trajec, method)
   for hole in groupby(table, :HOLEID)
     dh = sort(hole, :AT)
 
-    # interpolate dip and azm angles
-    # TODO
+    # interpolate azm and dip angles
+    interpolate!(dh, :AT, :AZM)
+    interpolate!(dh, :AT, :DIP)
 
     push!(drillholes, dh)
   end
@@ -191,6 +192,17 @@ function position(attrib, trajec, method)
   # reorder columns for clarity
   cols = [:FROM,:TO,:AT,:AZM,:DIP,:X,:Y,:Z,:HOLEID]
   select(result, Not(cols), cols)
+end
+
+# interpolate ycol of table assuming xcol is sorted
+function interpolate!(table, xcol, ycol)
+  xs  = table[!,xcol]
+  ys  = table[!,ycol]
+  is  = findall(!ismissing, ys)
+  itp = LinearItp(xs[is], ys[is], extrapolation_bc=LinearBC())
+  @inbounds for i in 1:length(xs)
+    ys[i] = itp(xs[i])
+  end
 end
 
 # -------------

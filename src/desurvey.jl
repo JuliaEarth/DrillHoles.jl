@@ -84,19 +84,19 @@ function trajectories(stable, ctable, method)
   step = method == :arc ? arcstep : tanstep
 
   # initialize trajectories
-  trajec = []
+  trajecs = []
 
   # process each drillhole separately
   for hole in groupby(table, :HOLEID)
     # sort intervals by depth
-    dh = sort(hole, :AT)
+    trajec = sort(hole, :AT)
 
     # relevant columns
-    at, azm, dip = dh.AT, dh.AZM, dh.DIP
-    x,  y,   z   = dh.X,  dh.Y,   dh.Z
+    at, azm, dip = trajec.AT, trajec.AZM, trajec.DIP
+    x,  y,   z   = trajec.X,  trajec.Y,   trajec.Z
 
     # loop over intervals
-    @inbounds for i in 2:size(dh, 1)
+    @inbounds for i in 2:size(trajec, 1)
       # compute increments dx, dy, dz
       az1, dp1   = azm[i-1], dip[i-1]
       az2, dp2   = azm[i],   dip[i]
@@ -109,11 +109,11 @@ function trajectories(stable, ctable, method)
       z[i] = z[i-1] + dz
     end
 
-    push!(trajec, dh)
+    push!(trajecs, trajec)
   end
 
   # concatenate drillhole trajectories
-  dropmissing!(reduce(vcat, trajec))
+  dropmissing!(reduce(vcat, trajecs))
 end
 
 function interleave(itables)

@@ -33,15 +33,15 @@ function desurvey(collar, survey, intervals; method=:arc, convention=:auto)
   @assert method ∈ [:arc, :tan] "invalid step method"
   @assert convention ∈ [:auto, :positive, :negative] "invalid convention"
 
-  # compute drillhole trajectories
-  trace = trajectories(survey, collar, method, convention)
+  # drillhole trajectories
+  trajec = trajectories(survey, collar, method, convention)
 
-  # merge interval tables
+  # attribute table
   pars = getcolnames(survey, method, convention)
-  table = mergetables(intervals)
-  fillxyz!(table, trace, pars)
+  attrib = mergetables(intervals)
+  fillxyz!(attrib, trajec, pars)
 
-  DrillHole(table, trace, pars)
+  DrillHole(attrib, trajec, pars)
 end
 
 function getcolnames(s, method, convention)
@@ -64,9 +64,9 @@ function trajectories(survey, collar, method, convention)
   # standardize column names to HOLEID, AT, AZM, DIP
   stable = select(DataFrame(survey.table),
                   survey.holeid => :HOLEID,
-                  survey.at     => :AT,
-                  survey.azm    => :AZM,
-                  survey.dip    => :DIP)
+                  survey.at  => ByRow(Float64) => :AT,
+                  survey.azm => ByRow(Float64) => :AZM,
+                  survey.dip => ByRow(Float64) => :DIP)
 
   # select relevant columns of collar table and
   # standardize column names to HOLEID, X, Y, Z
@@ -80,25 +80,20 @@ function trajectories(survey, collar, method, convention)
   ctable[!,:AT] .= 0
 
   # join tables and sort by hole id and depth
-  cols  = [:HOLEID, :AT]
-  trace = leftjoin(stable, ctable, on = cols)
-  sort!(trace, cols)
+  trajec = leftjoin(stable, ctable, on = [:HOLEID,:AT])
+  sort!(trajec, [:HOLEID,:AT])
 
   # flip sign of dip angle if necessary
-  convention == :positive && (trace[!,:DIP] *= -1)
+  convention == :positive && (trajec.DIP *= -1)
 
   # choose a step method
   step = method == :arc ? arcstep : tanstep
 
-  # relevant columns for calculation
-  at = trace[!,:AT]
-  az = trace[!,:AZM]
-  dp = trace[!,:DIP]
-  x  = trace[!,:X]
-  y  = trace[!,:Y]
-  z  = trace[!,:Z]
+  # relevant columns
+  at, az, dp = trajec.AT, trajec.AZM, trajec.DIP
+  x,   y,  z = trajec.X,  trajec.Y,   trajec.Z
 
-  for i in 1:size(trace, 1)
+  for i in 1:size(trajec, 1)
     # skip depth 0 where collar coordinates are already available
     at[i] == 0 && continue
 
@@ -114,7 +109,7 @@ function trajectories(survey, collar, method, convention)
     z[i] = z[i-1] + dz
   end
 
-  trace
+  trajec
 end
 
 # fill xyz for interval tables with from-to information

@@ -3,38 +3,32 @@
 # ------------------------------------------------------------------
 
 """
-    desurvey(survey, collar, intervals; method=:arc, convention=:auto)
+    desurvey(survey, collar, intervals; method=:arc, inputdip=:auto)
 
-Desurvey drill holes based on `survey`, `collar` and `intervals` tables
-using a given step `method`. Optionally, specify a `convention` for the
+Desurvey drill holes based on `survey`, `collar` and `intervals` tables.
+Optionally, specify a step `method` and a `inputdip` convention for the
 dip angles.
 
-## Methods
+## Step methods
 
 * `:arc` - spherical arc step
 * `:tan` - simple tanget step
 
 See https://help.seequent.com/Geo/2.1/en-GB/Content/drillholes/desurveying.htm
 
-## Conventions
+## Dip conventions
 
-* `:auto`     - most frequent dip sign points downwards
-* `:positive` - positive dip sign points downwards
-* `:negative` - negative dip sign points downwards
-
-## Example
-
-```julia
-julia> desurvey(survey, collar, [assay, lithology])
-```
+* `:auto` - most frequent dip sign points downwards
+* `:down` - positive dip sign points downwards
+* `:up`   - positive dip sign points upwards
 """
-function desurvey(survey, collar, intervals; method=:arc, convention=:auto)
+function desurvey(survey, collar, intervals; method=:arc, inputdip=:auto)
   # sanity checks
-  @assert method ∈ [:arc, :tan] "invalid step method"
-  @assert convention ∈ [:auto, :positive, :negative] "invalid convention"
+  @assert method ∈ [:arc,:tan] "invalid step method"
+  @assert inputdip ∈ [:auto,:down,:up] "invalid convention"
 
-  # drillhole trajectories
-  trajec = trajectories(survey, collar, method, convention)
+  # trajectory table
+  trajec = trajectories(survey, collar, method, inputdip)
 
   # attribute table
   attrib = interleave(intervals)
@@ -42,7 +36,7 @@ function desurvey(survey, collar, intervals; method=:arc, convention=:auto)
   trajec, attrib
 end
 
-function trajectories(survey, collar, method, convention)
+function trajectories(survey, collar, method, inputdip)
   # select relevant columns of survey table and
   # standardize column names to HOLEID, AT, AZM, DIP
   stable = select(DataFrame(survey.table),
@@ -67,7 +61,7 @@ function trajectories(survey, collar, method, convention)
   sort!(trajec, [:HOLEID,:AT])
 
   # flip sign of dip angle if necessary
-  convention == :positive && (trajec.DIP *= -1)
+  inputdip == :down && (trajec.DIP *= -1)
 
   # choose a step method
   step = method == :arc ? arcstep : tanstep

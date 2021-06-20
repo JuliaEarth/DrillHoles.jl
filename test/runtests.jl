@@ -9,6 +9,6 @@ using Test
     assays = Interval(DataFrame(HOLEID=[1,1,2], FROM=[1,3.5,0], TO=[3.5,8,7], A=[1,2,3]))
     lithos = Interval(DataFrame(HOLEID=[1,2,2], FROM=[0,0,4.4], TO=[8,4.4,8], L=["A","B","C"]))
 
-    desurvey(survey, collar, [assays, lithos], method = :arc, convention = :negative)
+    desurvey(survey, collar, [assays, lithos])
   end
 end

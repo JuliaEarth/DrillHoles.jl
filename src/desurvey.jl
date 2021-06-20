@@ -36,7 +36,8 @@ function desurvey(survey, collar, intervals; step=:arc, inputdip=:auto)
   # attribute table
   attrib = interleave(itables)
 
-  trajec, attrib
+  # position attributes on trajectory
+  position(attrib, trajec, step)
 end
 
 function standardize(survey, collar, intervals, inputdip)
@@ -161,6 +162,35 @@ function interleave(itables)
   # reorder columns and return
   cols = [:HOLEID,:FROM,:TO]
   select(attrib, cols, Not(cols))
+end
+
+function position(attrib, trajec, method)
+  # depth equals to middle of interval
+  interv = copy(attrib)
+  interv[!,:AT] = (interv.FROM .+ interv.TO) ./ 2
+
+  # join attributes and trajectory
+  table = outerjoin(interv, trajec, on = [:HOLEID,:AT])
+
+  # initialize drillholes
+  drillholes = []
+
+  # process each drillhole separately
+  for hole in groupby(table, :HOLEID)
+    dh = sort(hole, :AT)
+
+    # interpolate dip and azm angles
+    # TODO
+
+    push!(drillholes, dh)
+  end
+
+  # concatenate all drillholes
+  result = reduce(vcat, drillholes)
+
+  # reorder columns for clarity
+  cols = [:FROM,:TO,:AT,:AZM,:DIP,:X,:Y,:Z,:HOLEID]
+  select(result, Not(cols), cols)
 end
 
 # -------------

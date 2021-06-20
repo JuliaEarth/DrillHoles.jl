@@ -49,9 +49,7 @@ function standardize(survey, collar, intervals, inputdip)
                   survey.dip => ByRow(Float64) => :DIP)
 
   # flip sign of dip angle if necessary
-  if inputdip == :auto
-    inputdip = sum(sign, stable.DIP) > 0 ? :down : :up
-  end
+  inputdip == :auto && (inputdip = dipguess(stable))
   inputdip == :down && (stable.DIP *= -1)
 
   # select relevant columns of collar table and
@@ -71,6 +69,8 @@ function standardize(survey, collar, intervals, inputdip)
 
   stable, ctable, itables
 end
+
+dipguess(stable) = sum(sign, stable.DIP) > 0 ? :down : :up
 
 function trajectories(stable, ctable, method)
   # collar coordinates are at depth 0

@@ -3,9 +3,9 @@
 # ------------------------------------------------------------------
 
 """
-    desurvey(collar, survey, intervals; method=:arc, convention=:auto)
+    desurvey(survey, collar, intervals; method=:arc, convention=:auto)
 
-Desurvey drill holes based on `collar`, `survey` and `intervals` tables
+Desurvey drill holes based on `survey`, `collar` and `intervals` tables
 using a given step `method`. Optionally, specify a `convention` for the
 dip angles.
 
@@ -25,10 +25,10 @@ See https://help.seequent.com/Geo/2.1/en-GB/Content/drillholes/desurveying.htm
 ## Example
 
 ```julia
-julia> desurvey(collar, survey, [assay, lithology])
+julia> desurvey(survey, collar, [assay, lithology])
 ```
 """
-function desurvey(collar, survey, intervals; method=:arc, convention=:auto)
+function desurvey(survey, collar, intervals; method=:arc, convention=:auto)
   # sanity checks
   @assert method ∈ [:arc, :tan] "invalid step method"
   @assert convention ∈ [:auto, :positive, :negative] "invalid convention"

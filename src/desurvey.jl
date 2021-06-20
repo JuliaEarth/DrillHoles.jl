@@ -77,34 +77,43 @@ function trajectories(stable, ctable, method)
   ctableat = copy(ctable)
   ctableat[!,:AT] .= 0
 
-  # join tables and sort by hole id and depth
-  trajec = leftjoin(stable, ctableat, on = [:HOLEID,:AT])
-  sort!(trajec, [:HOLEID,:AT])
+  # join tables on hole id and depth
+  table = leftjoin(stable, ctableat, on = [:HOLEID,:AT])
 
   # choose a step method
   step = method == :arc ? arcstep : tanstep
 
-  # relevant columns
-  at, azm, dip = trajec.AT, trajec.AZM, trajec.DIP
-  x,  y,   z   = trajec.X,  trajec.Y,   trajec.Z
+  # initialize trajectories
+  trajec = []
 
-  for i in 1:size(trajec, 1)
-    # skip depth 0 where collar coordinates are already available
-    at[i] == 0 && continue
+  # process each drillhole separately
+  for hole in groupby(table, :HOLEID)
+    # sort intervals by depth
+    dh = sort(hole, :AT)
 
-    # compute increments dx, dy, dz
-    az1, dp1   = azm[i-1], dip[i-1]
-    az2, dp2   = azm[i],   dip[i]
-    d12        = at[i] - at[i-1]
-    dx, dy, dz = step(az1, dp1, az2, dp2, d12)
+    # relevant columns
+    at, azm, dip = dh.AT, dh.AZM, dh.DIP
+    x,  y,   z   = dh.X,  dh.Y,   dh.Z
 
-    # add increments to previous coordinates
-    x[i] = x[i-1] + dx
-    y[i] = y[i-1] + dy
-    z[i] = z[i-1] + dz
+    # loop over intervals
+    @inbounds for i in 2:size(dh, 1)
+      # compute increments dx, dy, dz
+      az1, dp1   = azm[i-1], dip[i-1]
+      az2, dp2   = azm[i],   dip[i]
+      d12        = at[i] - at[i-1]
+      dx, dy, dz = step(az1, dp1, az2, dp2, d12)
+
+      # add increments to previous coordinates
+      x[i] = x[i-1] + dx
+      y[i] = y[i-1] + dy
+      z[i] = z[i-1] + dz
+    end
+
+    push!(trajec, dh)
   end
 
-  trajec
+  # concatenate drillhole trajectories
+  dropmissing!(reduce(vcat, trajec))
 end
 
 function interleave(itables)

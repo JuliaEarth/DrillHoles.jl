@@ -3,10 +3,10 @@
 # ------------------------------------------------------------------
 
 """
-    desurvey(survey, collar, intervals; method=:arc, inputdip=:auto)
+    desurvey(survey, collar, intervals; step=:arc, inputdip=:auto)
 
 Desurvey drill holes based on `survey`, `collar` and `intervals` tables.
-Optionally, specify a step `method` and a `inputdip` convention for the
+Optionally, specify a `step` method and a `inputdip` convention for the
 dip angles.
 
 ## Step methods
@@ -22,16 +22,16 @@ See https://help.seequent.com/Geo/2.1/en-GB/Content/drillholes/desurveying.htm
 * `:down` - positive dip sign points downwards
 * `:up`   - positive dip sign points upwards
 """
-function desurvey(survey, collar, intervals; method=:arc, inputdip=:auto)
+function desurvey(survey, collar, intervals; step=:arc, inputdip=:auto)
   # sanity checks
-  @assert method ∈ [:arc,:tan] "invalid step method"
-  @assert inputdip ∈ [:auto,:down,:up] "invalid convention"
+  @assert step ∈ [:arc,:tan] "invalid step method"
+  @assert inputdip ∈ [:auto,:down,:up] "invalid dip convention"
 
   # standardize input tables
   stable, ctable, itables = standardize(survey, collar, intervals, inputdip)
 
   # trajectory table
-  trajec = trajectories(stable, ctable, method)
+  trajec = trajectories(stable, ctable, step)
 
   # attribute table
   attrib = interleave(itables)
@@ -50,7 +50,7 @@ function standardize(survey, collar, intervals, inputdip)
 
   # flip sign of dip angle if necessary
   inputdip == :auto && (inputdip = dipguess(stable))
-  inputdip == :down && (stable.DIP *= -1)
+  inputdip == :up && (stable.DIP *= -1)
 
   # select relevant columns of collar table and
   # standardize column names to HOLEID, X, Y, Z

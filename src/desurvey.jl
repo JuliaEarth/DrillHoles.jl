@@ -3,11 +3,11 @@
 # ------------------------------------------------------------------
 
 """
-    desurvey(survey, collar, intervals; step=:arc, inputdip=:auto)
+    desurvey(survey, collar, intervals; step=:arc, indip=:auto)
 
 Desurvey drill holes based on `survey`, `collar` and `intervals` tables.
-Optionally, specify a `step` method and a `inputdip` and `ouputdip`
-convention for the dip angles.
+Optionally, specify a `step` method, an input dip angle convention `indip`
+and an output dip angle convention `outdip`.
 
 ## Step methods
 
@@ -30,14 +30,14 @@ See https://help.seequent.com/Geo/2.1/en-GB/Content/drillholes/desurveying.htm
 * `:up`   - positive dip points upwards
 """
 function desurvey(survey, collar, intervals;
-                  step=:arc, inputdip=:auto, outputdip=:up)
+                  step=:arc, indip=:auto, outdip=:up)
   # sanity checks
   @assert step ∈ [:arc,:tan] "invalid step method"
-  @assert inputdip ∈ [:auto,:down,:up] "invalid input dip convention"
-  @assert outputdip ∈ [:down,:up] "invalid output dip convention"
+  @assert indip ∈ [:auto,:down,:up] "invalid input dip convention"
+  @assert outdip ∈ [:down,:up] "invalid output dip convention"
 
   # pre-process input tables
-  stable, ctable, itables = preprocess(survey, collar, intervals, inputdip)
+  stable, ctable, itables = preprocess(survey, collar, intervals, indip)
 
   # combine all intervals into single table and
   # assign values to sub-intervals when possible
@@ -52,10 +52,10 @@ function desurvey(survey, collar, intervals;
   result = locate(attrib, ctable, step)
 
   # post-process output table
-  postprocess(result, outputdip)
+  postprocess(result, outdip)
 end
 
-function preprocess(survey, collar, intervals, inputdip)
+function preprocess(survey, collar, intervals, indip)
   # select relevant columns of survey table and
   # standardize column names to HOLEID, AT, AZM, DIP
   stable = select(DataFrame(survey.table),
@@ -65,8 +65,8 @@ function preprocess(survey, collar, intervals, inputdip)
                   survey.dip => ByRow(Float64) => :DIP)
 
   # flip sign of dip angle if necessary
-  inputdip == :auto && (inputdip = dipguess(stable))
-  inputdip == :down && (stable.DIP *= -1)
+  indip == :auto && (indip = dipguess(stable))
+  indip == :down && (stable.DIP *= -1)
 
   # duplicate rows if hole id has a single row
   singles = []
@@ -99,9 +99,9 @@ end
 
 dipguess(stable) = sum(sign, stable.DIP) > 0 ? :down : :up
 
-function postprocess(result, outputdip)
+function postprocess(result, outdip)
   # flip sign of dip angle if necessary
-  outputdip == :down && (result.DIP *= -1)
+  outdip == :down && (result.DIP *= -1)
 
   # reorder columns for clarity
   cols = [:HOLEID,:FROM,:TO,:AT,:AZM,:DIP,:X,:Y,:Z]

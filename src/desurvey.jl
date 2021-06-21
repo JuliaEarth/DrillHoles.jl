@@ -106,6 +106,9 @@ function interleave(itables)
     # find all possible depths
     depths = [hole.FROM; hole.TO] |> unique |> sort
 
+    # create an R-tree for fast intersection
+    rtree = fitrtree(hole)
+
     # loop over all sub-intervals
     for i in 2:length(depths)
       # current sub-interval
@@ -115,7 +118,8 @@ function interleave(itables)
       row = Dict{Symbol,Any}(:HOLEID => holeid, :FROM => from, :TO => to)
 
       # find all intervals which contain sub-interval
-      samples = filter(I -> I.FROM ≤ from && to ≤ I.TO, hole, view = true)
+      inds = queryrtree(rtree, from, to)
+      samples = hole[inds,:]
 
       # fill values when that is possible assuming homogeneity
       props = select(samples, Not([:HOLEID,:FROM,:TO]))
@@ -132,6 +136,20 @@ function interleave(itables)
 
   # concatenate rows
   DataFrame(rows)
+end
+
+function fitrtree(hole)
+  rtree = SI.RTree{Float64,1}(Int)
+  for (i, row) in enumerate(eachrow(hole))
+    rect = SI.Rect((row.FROM,), (row.TO,))
+    SI.insert!(rtree, rect, i)
+  end
+  rtree
+end
+
+function queryrtree(rtree, from, to)
+  itr = SI.intersects_with(rtree, SI.Rect((from,), (to,)))
+  [x.val for x in itr]
 end
 
 function position(itable, stable)

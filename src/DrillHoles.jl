@@ -10,6 +10,8 @@ import Interpolations
 const LinearItp = Interpolations.LinearInterpolation
 const LinearBC  = Interpolations.Line
 
+import SpatialIndexing as SI
+
 include("tables.jl")
 include("desurvey.jl")
 

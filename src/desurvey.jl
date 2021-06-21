@@ -44,7 +44,7 @@ function desurvey(survey, collar, intervals; step=:arc, inputdip=:auto)
 
   # reorder columns for clarity
   cols = [:HOLEID,:FROM,:TO,:AT,:AZM,:DIP,:X,:Y,:Z]
-  select(result, Not(cols), cols)
+  select(result, cols, Not(cols))
 end
 
 function standardize(survey, collar, intervals, inputdip)

@@ -6,8 +6,8 @@
     desurvey(survey, collar, intervals; step=:arc, inputdip=:auto)
 
 Desurvey drill holes based on `survey`, `collar` and `intervals` tables.
-Optionally, specify a `step` method and a `inputdip` convention for the
-dip angles.
+Optionally, specify a `step` method and a `inputdip` and `ouputdip`
+convention for the dip angles.
 
 ## Step methods
 
@@ -18,17 +18,26 @@ See https://help.seequent.com/Geo/2.1/en-GB/Content/drillholes/desurveying.htm
 
 ## Dip conventions
 
+### Input dip angle
+
 * `:auto` - most frequent dip sign points downwards
-* `:down` - positive dip sign points downwards
-* `:up`   - positive dip sign points upwards
+* `:down` - positive dip points downwards
+* `:up`   - positive dip points upwards
+
+### Output dip angle
+
+* `:down` - positive dip points downwards
+* `:up`   - positive dip points upwards
 """
-function desurvey(survey, collar, intervals; step=:arc, inputdip=:auto)
+function desurvey(survey, collar, intervals;
+                  step=:arc, inputdip=:auto, outputdip=:up)
   # sanity checks
   @assert step ∈ [:arc,:tan] "invalid step method"
-  @assert inputdip ∈ [:auto,:down,:up] "invalid dip convention"
+  @assert inputdip ∈ [:auto,:down,:up] "invalid input dip convention"
+  @assert outputdip ∈ [:down,:up] "invalid output dip convention"
 
-  # standardize input tables
-  stable, ctable, itables = standardize(survey, collar, intervals, inputdip)
+  # pre-process input tables
+  stable, ctable, itables = preprocess(survey, collar, intervals, inputdip)
 
   # combine all intervals into single table and
   # assign values to sub-intervals when possible
@@ -42,12 +51,11 @@ function desurvey(survey, collar, intervals; step=:arc, inputdip=:auto)
   # compute Cartesian coordinates X, Y and Z
   result = locate(attrib, ctable, step)
 
-  # reorder columns for clarity
-  cols = [:HOLEID,:FROM,:TO,:AT,:AZM,:DIP,:X,:Y,:Z]
-  select(result, cols, Not(cols))
+  # post-process output table
+  postprocess(result, outputdip)
 end
 
-function standardize(survey, collar, intervals, inputdip)
+function preprocess(survey, collar, intervals, inputdip)
   # select relevant columns of survey table and
   # standardize column names to HOLEID, AT, AZM, DIP
   stable = select(DataFrame(survey.table),
@@ -90,6 +98,15 @@ function standardize(survey, collar, intervals, inputdip)
 end
 
 dipguess(stable) = sum(sign, stable.DIP) > 0 ? :down : :up
+
+function postprocess(result, outputdip)
+  # flip sign of dip angle if necessary
+  outputdip == :down && (result.DIP *= -1)
+
+  # reorder columns for clarity
+  cols = [:HOLEID,:FROM,:TO,:AT,:AZM,:DIP,:X,:Y,:Z]
+  select(result, cols, Not(cols))
+end
 
 function interleave(itables)
   # stack tables in order to see all variables
@@ -232,6 +249,7 @@ end
 # STEP METHODS
 # -------------
 
+# assumes positive dip points upwards
 function arcstep(az1, dp1, az2, dp2, d12)
   dp1, dp2 = (90-dp1), (90-dp2)
   DL = acos(cosd(dp2-dp1)-sind(dp1)*sind(dp2)*(1-cosd(az2-az1)))
@@ -242,6 +260,7 @@ function arcstep(az1, dp1, az2, dp2, d12)
   dx, dy, dz
 end
 
+# assumes positive dip points upwards
 function tanstep(az1, dp1, az2, dp2, d12)
   dp1 = (90-dp1)
   dx  = d12*sind(dp1)*sind(az1)

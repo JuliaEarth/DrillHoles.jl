@@ -30,14 +30,17 @@ function desurvey(survey, collar, intervals; step=:arc, inputdip=:auto)
   # standardize input tables
   stable, ctable, itables = standardize(survey, collar, intervals, inputdip)
 
-  # trajectory table
-  trajec = trajectories(stable, ctable, step)
+  # combine all intervals into single table and
+  # assign values to sub-intervals when possible
+  itable = interleave(itables)
 
-  # attribute table
-  attrib = interleave(itables)
+  # combine intervals with survey table and
+  # interpolate AZM and DIP angles
+  attrib = position(itable, stable)
 
-  # position attributes on trajectory
-  position(attrib, trajec, step)
+  # combine attributes with collar table and
+  # compute Cartesian coordinates X, Y and Z
+  locate(attrib, ctable, step)
 end
 
 function standardize(survey, collar, intervals, inputdip)
@@ -51,7 +54,7 @@ function standardize(survey, collar, intervals, inputdip)
 
   # flip sign of dip angle if necessary
   inputdip == :auto && (inputdip = dipguess(stable))
-  inputdip == :up && (stable.DIP *= -1)
+  inputdip == :down && (stable.DIP *= -1)
 
   # select relevant columns of collar table and
   # standardize column names to HOLEID, X, Y, Z
@@ -72,50 +75,6 @@ function standardize(survey, collar, intervals, inputdip)
 end
 
 dipguess(stable) = sum(sign, stable.DIP) > 0 ? :down : :up
-
-function trajectories(stable, ctable, method)
-  # collar coordinates are at depth 0
-  ctableat = copy(ctable)
-  ctableat[!,:AT] .= 0
-
-  # join tables on hole id and depth
-  table = leftjoin(stable, ctableat, on = [:HOLEID,:AT])
-
-  # choose a step method
-  step = method == :arc ? arcstep : tanstep
-
-  # initialize trajectories
-  trajecs = []
-
-  # process each drillhole separately
-  for hole in groupby(table, :HOLEID)
-    # sort intervals by depth
-    trajec = sort(hole, :AT)
-
-    # relevant columns
-    at, azm, dip = trajec.AT, trajec.AZM, trajec.DIP
-    x,  y,   z   = trajec.X,  trajec.Y,   trajec.Z
-
-    # loop over intervals
-    @inbounds for i in 2:size(trajec, 1)
-      # compute increments dx, dy, dz
-      az1, dp1   = azm[i-1], dip[i-1]
-      az2, dp2   = azm[i],   dip[i]
-      d12        = at[i] - at[i-1]
-      dx, dy, dz = step(az1, dp1, az2, dp2, d12)
-
-      # add increments to previous coordinates
-      x[i] = x[i-1] + dx
-      y[i] = y[i-1] + dy
-      z[i] = z[i-1] + dz
-    end
-
-    push!(trajecs, trajec)
-  end
-
-  # concatenate drillhole trajectories
-  dropmissing!(reduce(vcat, trajecs))
-end
 
 function interleave(itables)
   # stack tables in order to see all variables
@@ -164,13 +123,13 @@ function interleave(itables)
   select(attrib, cols, Not(cols))
 end
 
-function position(attrib, trajec, method)
+function position(itable, stable)
   # depth equals to middle of interval
-  interv = copy(attrib)
+  interv = copy(itable)
   interv[!,:AT] = (interv.FROM .+ interv.TO) ./ 2
 
   # join attributes and trajectory
-  table = outerjoin(interv, trajec, on = [:HOLEID,:AT])
+  table = outerjoin(interv, stable, on = [:HOLEID,:AT])
 
   # initialize drillholes
   drillholes = []
@@ -190,11 +149,11 @@ function position(attrib, trajec, method)
   result = reduce(vcat, drillholes)
 
   # reorder columns for clarity
-  cols = [:FROM,:TO,:AT,:AZM,:DIP,:X,:Y,:Z,:HOLEID]
+  cols = [:HOLEID,:FROM,:TO,:AT,:AZM,:DIP]
   select(result, Not(cols), cols)
 end
 
-# interpolate ycol of table assuming xcol is sorted
+# interpolate ycol from xcol assuming table is sorted
 function interpolate!(table, xcol, ycol)
   xs  = table[!,xcol]
   ys  = table[!,ycol]
@@ -203,6 +162,50 @@ function interpolate!(table, xcol, ycol)
   @inbounds for i in 1:length(xs)
     ys[i] = itp(xs[i])
   end
+end
+
+function locate(attrib, ctable, method)
+  # collar coordinates are at depth 0
+  ctableat = copy(ctable)
+  ctableat[!,:AT] .= 0
+
+  # join tables on hole id and depth
+  table = leftjoin(attrib, ctableat, on = [:HOLEID,:AT])
+
+  # choose a step method
+  step = method == :arc ? arcstep : tanstep
+
+  # initialize trajectories
+  trajecs = []
+
+  # process each drillhole separately
+  for hole in groupby(table, :HOLEID)
+    # sort intervals by depth
+    trajec = sort(hole, :AT)
+
+    # relevant columns
+    at, azm, dip = trajec.AT, trajec.AZM, trajec.DIP
+    x,  y,   z   = trajec.X,  trajec.Y,   trajec.Z
+
+    # loop over intervals
+    @inbounds for i in 2:size(trajec, 1)
+      # compute increments dx, dy, dz
+      az1, dp1   = azm[i-1], dip[i-1]
+      az2, dp2   = azm[i],   dip[i]
+      d12        = at[i] - at[i-1]
+      dx, dy, dz = step(az1, dp1, az2, dp2, d12)
+
+      # add increments to previous coordinates
+      x[i] = x[i-1] + dx
+      y[i] = y[i-1] + dy
+      z[i] = z[i-1] + dz
+    end
+
+    push!(trajecs, trajec)
+  end
+
+  # concatenate drillhole trajectories
+  reduce(vcat, trajecs)
 end
 
 # -------------

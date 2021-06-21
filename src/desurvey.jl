@@ -146,7 +146,17 @@ function position(itable, stable)
   end
 
   # concatenate all drillholes
-  reduce(vcat, drillholes)
+  attrib = reduce(vcat, drillholes)
+
+  # fill FROM and TO of survey table
+  # with AT (degenerate interval)
+  for row in eachrow(attrib)
+    ismissing(row.FROM) && (row.FROM = row.AT)
+    ismissing(row.TO)   && (row.TO   = row.AT)
+  end
+
+  # drop missing type from complete columns
+  dropmissing!(attrib, [:FROM,:TO,:AZM,:DIP])
 end
 
 # interpolate ycol from xcol assuming table is sorted
@@ -201,7 +211,10 @@ function locate(attrib, ctable, method)
   end
 
   # concatenate drillhole trajectories
-  reduce(vcat, trajecs)
+  drillholes = reduce(vcat, trajecs)
+
+  # drop missing type from complete columns
+  dropmissing!(drillholes, [:X,:Y,:Z])
 end
 
 # -------------

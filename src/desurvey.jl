@@ -40,7 +40,11 @@ function desurvey(survey, collar, intervals; step=:arc, inputdip=:auto)
 
   # combine attributes with collar table and
   # compute Cartesian coordinates X, Y and Z
-  locate(attrib, ctable, step)
+  result = locate(attrib, ctable, step)
+
+  # reorder columns for clarity
+  cols = [:HOLEID,:FROM,:TO,:AT,:AZM,:DIP,:X,:Y,:Z]
+  select(result, Not(cols), cols)
 end
 
 function standardize(survey, collar, intervals, inputdip)
@@ -116,11 +120,7 @@ function interleave(itables)
   end
 
   # concatenate rows
-  attrib = DataFrame(rows)
-
-  # reorder columns and return
-  cols = [:HOLEID,:FROM,:TO]
-  select(attrib, cols, Not(cols))
+  DataFrame(rows)
 end
 
 function position(itable, stable)
@@ -146,11 +146,7 @@ function position(itable, stable)
   end
 
   # concatenate all drillholes
-  result = reduce(vcat, drillholes)
-
-  # reorder columns for clarity
-  cols = [:HOLEID,:FROM,:TO,:AT,:AZM,:DIP]
-  select(result, Not(cols), cols)
+  reduce(vcat, drillholes)
 end
 
 # interpolate ycol from xcol assuming table is sorted

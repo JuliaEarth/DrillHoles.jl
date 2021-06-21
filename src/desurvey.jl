@@ -60,6 +60,17 @@ function standardize(survey, collar, intervals, inputdip)
   inputdip == :auto && (inputdip = dipguess(stable))
   inputdip == :down && (stable.DIP *= -1)
 
+  # duplicate rows if hole id has a single row
+  singles = []
+  for hole in groupby(stable, :HOLEID)
+    if size(hole, 1) == 1
+      single = copy(hole)
+      single.AT .+= 1
+      push!(singles, single)
+    end
+  end
+  stable = vcat(stable, singles...)
+
   # select relevant columns of collar table and
   # standardize column names to HOLEID, X, Y, Z
   ctable = select(DataFrame(collar.table),

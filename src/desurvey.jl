@@ -3,7 +3,7 @@
 # ------------------------------------------------------------------
 
 """
-    desurvey(survey, collar, intervals; step=:arc, indip=:auto)
+    desurvey(survey, collar, intervals; step=:arc, indip=:auto, outdip=:down)
 
 Desurvey drill holes based on `survey`, `collar` and `intervals` tables.
 Optionally, specify a `step` method, an input dip angle convention `indip`
@@ -30,7 +30,7 @@ See https://help.seequent.com/Geo/2.1/en-GB/Content/drillholes/desurveying.htm
 * `:up`   - positive dip points upwards
 """
 function desurvey(survey, collar, intervals;
-                  step=:arc, indip=:auto, outdip=:up)
+                  step=:arc, indip=:auto, outdip=:down)
   # sanity checks
   @assert step ∈ [:arc,:tan] "invalid step method"
   @assert indip ∈ [:auto,:down,:up] "invalid input dip convention"

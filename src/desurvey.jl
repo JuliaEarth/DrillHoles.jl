@@ -251,7 +251,7 @@ end
 
 # assumes positive dip points upwards
 function arcstep(az1, dp1, az2, dp2, d12)
-  dp1, dp2 = (90-dp1), (90-dp2)
+  dp1, dp2 = (90.0-dp1), (90.0-dp2)
   DL = acos(cosd(dp2-dp1)-sind(dp1)*sind(dp2)*(1-cosd(az2-az1)))
   RF = DL ≈ 0.0 ? 1.0 : 2*tan(DL/2)/DL
   dx = 0.5*d12*(sind(dp1)*sind(az1)+sind(dp2)*sind(az2))*RF
@@ -262,7 +262,7 @@ end
 
 # assumes positive dip points upwards
 function tanstep(az1, dp1, az2, dp2, d12)
-  dp1 = (90-dp1)
+  dp1 = (90.0-dp1)
   dx  = d12*sind(dp1)*sind(az1)
   dy  = d12*sind(dp1)*cosd(az1)
   dz  = d12*cosd(dp1)

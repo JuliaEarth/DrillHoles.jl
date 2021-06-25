@@ -21,5 +21,12 @@ using Test
     @test isapprox(dh.Z, [1.0, 0.500084, -1.24948, -3.99822, -4.74773, 2.0, -0.141693, -2.86179, -3.54079, -5.28486], atol=1e-5)
     @test isequal(dh.A, [missing, missing, 1, missing, 2, missing, 3, missing, 3, missing])
     @test isequal(dh.L, [missing, "A", "A", missing, "A", missing, "B", missing, "C", "C"])
+
+    # changing step method only changes coordinates X, Y, Z
+    dh2 = desurvey(survey, collar, [assays, lithos], step=:tan)
+    @test isequal(dh[!,Not([:X,:Y,:Z])], dh2[!,Not([:X,:Y,:Z])])
+    @test isapprox(dh2.X, [1.0, 1.0, 1.00006, 1.00061, 1.00106, 2.0, 2.16926, 2.39654, 2.45723, 2.61581], atol=1e-5)
+    @test isapprox(dh2.Y, [1.0, 1.00873, 1.04232, 1.11191, 1.13808, 2.0, 2.46505, 3.07487, 3.23296, 3.6431], atol=1e-5)
+    @test isapprox(dh2.Z, [1.0, 0.500076, -1.2496, -3.99872, -4.74826, 2.0, -0.143614, -2.86693, -3.54614, -5.2916], atol=1e-5)
   end
 end

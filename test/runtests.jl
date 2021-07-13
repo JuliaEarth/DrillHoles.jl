@@ -10,6 +10,7 @@ using Test
     lithos = Interval(DataFrame(HOLEID=[1,2,2], FROM=[0,0,4.4], TO=[8,4.4,8], L=["A","B","C"]))
 
     dh = desurvey(collar, survey, [assays, lithos])
+    @test dh.SOURCE == [:SURVEY, :INTERVAL, :INTERVAL, :SURVEY, :INTERVAL, :SURVEY, :INTERVAL, :SURVEY, :INTERVAL, :INTERVAL]
     @test dh.HOLEID == [1, 1, 1, 1, 1, 2, 2, 2, 2, 2]
     @test dh.FROM   ≈ [0.0, 0.0, 1.0, 5.0, 3.5, 0.0, 0.0, 5.0, 4.4, 7.0]
     @test dh.TO     ≈ [0.0, 1.0, 3.5, 5.0, 8.0, 0.0, 4.4, 5.0, 7.0, 8.0]

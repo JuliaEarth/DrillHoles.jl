@@ -104,7 +104,7 @@ function postprocess(result, outdip)
   outdip == :down && (result.DIP *= -1)
 
   # reorder columns for clarity
-  cols = [:HOLEID,:FROM,:TO,:AT,:AZM,:DIP,:X,:Y,:Z]
+  cols = [:SOURCE,:HOLEID,:FROM,:TO,:AT,:AZM,:DIP,:X,:Y,:Z]
   select(result, cols, Not(cols))
 end
 
@@ -152,12 +152,20 @@ function interleave(itables)
 end
 
 function position(itable, stable)
-  # depth equals to middle of interval
+  # copy table to avoid mutation
   interv = copy(itable)
+
+  # depth equals to middle of interval
   interv[!,:AT] = (interv.FROM .+ interv.TO) ./ 2
+
+  # register source of data for interval table
+  interv[!,:SOURCE] .= :INTERVAL
 
   # join attributes and trajectory
   table = outerjoin(interv, stable, on = [:HOLEID,:AT])
+
+  # register source of data for survey table
+  table.SOURCE = coalesce.(table.SOURCE, :SURVEY)
 
   # initialize drillholes
   drillholes = []

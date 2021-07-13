@@ -3,9 +3,9 @@
 # ------------------------------------------------------------------
 
 """
-    desurvey(survey, collar, intervals; step=:arc, indip=:auto, outdip=:down)
+    desurvey(collar, survey, intervals; step=:arc, indip=:auto, outdip=:down)
 
-Desurvey drill holes based on `survey`, `collar` and `intervals` tables.
+Desurvey drill holes based on `collar`, `survey` and `intervals` tables.
 Optionally, specify a `step` method, an input dip angle convention `indip`
 and an output dip angle convention `outdip`.
 
@@ -29,7 +29,7 @@ See https://help.seequent.com/Geo/2.1/en-GB/Content/drillholes/desurveying.htm
 * `:down` - positive dip points downwards
 * `:up`   - positive dip points upwards
 """
-function desurvey(survey, collar, intervals;
+function desurvey(collar, survey, intervals;
                   step=:arc, indip=:auto, outdip=:down)
   # sanity checks
   @assert step ∈ [:arc,:tan] "invalid step method"
@@ -37,7 +37,7 @@ function desurvey(survey, collar, intervals;
   @assert outdip ∈ [:down,:up] "invalid output dip convention"
 
   # pre-process input tables
-  stable, ctable, itables = preprocess(survey, collar, intervals, indip)
+   ctable, stable, itables = preprocess(collar, survey, intervals, indip)
 
   # combine all intervals into single table and
   # assign values to sub-intervals when possible
@@ -55,7 +55,15 @@ function desurvey(survey, collar, intervals;
   postprocess(result, outdip)
 end
 
-function preprocess(survey, collar, intervals, indip)
+function preprocess(collar, survey, intervals, indip)
+  # select relevant columns of collar table and
+  # standardize column names to HOLEID, X, Y, Z
+  ctable = select(DataFrame(collar.table),
+                  collar.holeid => :HOLEID,
+                  collar.x => ByRow(Float64) => :X,
+                  collar.y => ByRow(Float64) => :Y,
+                  collar.z => ByRow(Float64) => :Z)
+
   # select relevant columns of survey table and
   # standardize column names to HOLEID, AT, AZM, DIP
   stable = select(DataFrame(survey.table),
@@ -79,14 +87,6 @@ function preprocess(survey, collar, intervals, indip)
   end
   stable = vcat(stable, singles...)
 
-  # select relevant columns of collar table and
-  # standardize column names to HOLEID, X, Y, Z
-  ctable = select(DataFrame(collar.table),
-                  collar.holeid => :HOLEID,
-                  collar.x => ByRow(Float64) => :X,
-                  collar.y => ByRow(Float64) => :Y,
-                  collar.z => ByRow(Float64) => :Z)
-
   # select all columns of interval tables and
   # standardize column names to HOLEID, FROM, TO
   itables = [rename(DataFrame(interval.table),
@@ -94,7 +94,7 @@ function preprocess(survey, collar, intervals, indip)
                     interval.from   => :FROM,
                     interval.to     => :TO) for interval in intervals]
 
-  stable, ctable, itables
+  ctable, stable, itables
 end
 
 dipguess(stable) = sum(sign, stable.DIP) > 0 ? :down : :up

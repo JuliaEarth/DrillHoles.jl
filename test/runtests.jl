@@ -9,7 +9,7 @@ using Test
     assays = Interval(DataFrame(HOLEID=[1,1,2], FROM=[1,3.5,0], TO=[3.5,8,7], A=[1,2,3]))
     lithos = Interval(DataFrame(HOLEID=[1,2,2], FROM=[0,0,4.4], TO=[8,4.4,8], L=["A","B","C"]))
 
-    dh = desurvey(survey, collar, [assays, lithos])
+    dh = desurvey(collar, survey, [assays, lithos])
     @test dh.HOLEID == [1, 1, 1, 1, 1, 2, 2, 2, 2, 2]
     @test dh.FROM   ≈ [0.0, 0.0, 1.0, 5.0, 3.5, 0.0, 0.0, 5.0, 4.4, 7.0]
     @test dh.TO     ≈ [0.0, 1.0, 3.5, 5.0, 8.0, 0.0, 4.4, 5.0, 7.0, 8.0]
@@ -23,7 +23,7 @@ using Test
     @test isequal(dh.L, [missing, "A", "A", missing, "A", missing, "B", missing, "C", "C"])
 
     # changing step method only changes coordinates X, Y, Z
-    dh2 = desurvey(survey, collar, [assays, lithos], step=:tan)
+    dh2 = desurvey(collar, survey, [assays, lithos], step=:tan)
     @test isequal(dh[!,Not([:X,:Y,:Z])], dh2[!,Not([:X,:Y,:Z])])
     @test isapprox(dh2.X, [1.0, 1.0, 1.00006, 1.00061, 1.00106, 2.0, 2.16926, 2.39654, 2.45723, 2.61581], atol=1e-5)
     @test isapprox(dh2.Y, [1.0, 1.00873, 1.04232, 1.11191, 1.13808, 2.0, 2.46505, 3.07487, 3.23296, 3.6431], atol=1e-5)

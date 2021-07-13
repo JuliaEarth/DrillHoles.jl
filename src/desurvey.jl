@@ -197,12 +197,14 @@ end
 
 # interpolate ycol from xcol assuming table is sorted
 function interpolate!(table, xcol, ycol)
-  xs  = table[!,xcol]
-  ys  = table[!,ycol]
-  is  = findall(!ismissing, ys)
-  itp = LinearItp(xs[is], ys[is], extrapolation_bc=LinearBC())
-  @inbounds for i in 1:length(xs)
-    ys[i] = itp(xs[i])
+  xs = table[!,xcol]
+  ys = table[!,ycol]
+  is = findall(!ismissing, ys)
+  if !isempty(is)
+    itp = LinearItp(xs[is], ys[is], extrapolation_bc=LinearBC())
+    @inbounds for i in 1:length(xs)
+      ys[i] = itp(xs[i])
+    end
   end
 end
 
@@ -217,40 +219,46 @@ function locate(attrib, ctable, method)
   # choose a step method
   step = method == :arc ? arcstep : tanstep
 
-  # initialize trajectories
-  trajecs = []
+  # initialize drillholes
+  drillholes = []
 
   # process each drillhole separately
   for hole in groupby(table, :HOLEID)
     # sort intervals by depth
-    trajec = sort(hole, :AT)
+    dh = sort(hole, :AT)
 
-    # relevant columns
-    at, azm, dip = trajec.AT, trajec.AZM, trajec.DIP
-    x,  y,   z   = trajec.X,  trajec.Y,   trajec.Z
+    # view rows from survey table
+    survey = view(dh, dh.SOURCE .== :SURVEY, :)
 
-    # loop over intervals
-    @inbounds for i in 2:size(trajec, 1)
+    # use step method to calculate coordinates on survey
+    at, azm, dip = survey.AT, survey.AZM, survey.DIP
+    x,  y,   z   = survey.X,  survey.Y,   survey.Z
+    @inbounds for i in 2:size(survey, 1)
       # compute increments dx, dy, dz
       az1, dp1   = azm[i-1], dip[i-1]
       az2, dp2   = azm[i],   dip[i]
       d12        = at[i] - at[i-1]
       dx, dy, dz = step(az1, dp1, az2, dp2, d12)
 
-      # add increments to previous coordinates
+      # add increments to x, y, z
       x[i] = x[i-1] + dx
       y[i] = y[i-1] + dy
       z[i] = z[i-1] + dz
     end
 
-    push!(trajecs, trajec)
+    # interpolate coordinates linearly on intervals
+    interpolate!(dh, :AT, :X)
+    interpolate!(dh, :AT, :Y)
+    interpolate!(dh, :AT, :Z)
+
+    push!(drillholes, dh)
   end
 
   # concatenate drillhole trajectories
-  drillholes = reduce(vcat, trajecs)
+  result = reduce(vcat, drillholes)
 
   # drop missing type from complete columns
-  dropmissing!(drillholes, [:X,:Y,:Z])
+  dropmissing!(result, [:X,:Y,:Z])
 end
 
 # -------------

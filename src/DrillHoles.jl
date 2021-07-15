@@ -12,6 +12,7 @@ const LinearBC  = Interpolations.Line
 
 include("tables.jl")
 include("desurvey.jl")
+include("composite.jl")
 
 export
   # types
@@ -21,6 +22,7 @@ export
   Interval,
 
   # functions
-  desurvey
+  desurvey,
+  composite
 
 end

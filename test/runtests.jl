@@ -29,5 +29,25 @@ using Test
     @test isapprox(dh2.X, [1.0, 1.0, 1.0, 1.0, 1.0, 2.0, 2.16926, 2.38469, 2.43855, 2.57703], atol=1e-5)
     @test isapprox(dh2.Y, [1.0, 1.00873, 1.03927, 1.08726, 1.10035, 2.0, 2.46505, 3.05692, 3.20489, 3.58539], atol=1e-5)
     @test isapprox(dh2.Z, [1.0, 0.500076, -1.24966, -3.99924, -4.74912, 2.0, -0.143614, -2.87185, -3.55391, -5.30778], atol=1e-5)
+
+    # guess column names
+    collar = Collar(DataFrame(holeid=1:2, XCOLLAR=1:2, Y=1:2, z=1:2))
+    @test collar.holeid == :holeid
+    @test collar.x == :XCOLLAR
+    @test collar.y == :Y
+    @test collar.z == :z
+    survey = Survey(DataFrame(HOLEID=[1,1,2,2], at=[0,5,0,5], BRG=[0,1,20,21], DIP=[89,88,77,76]))
+    @test survey.holeid == :HOLEID
+    @test survey.at == :at
+    @test survey.azm == :BRG
+    @test survey.dip == :DIP
+    assays = Interval(DataFrame(holeid=[1,1,2], FROM=[1,3.5,0], to=[3.5,8,7], A=[1,2,3]))
+    @test assays.holeid == :holeid
+    @test assays.from == :FROM
+    @test assays.to == :to
+
+    # result has standard column names
+    dh = desurvey(collar, survey, [assays])
+    @test propertynames(dh) == [:SOURCE,:HOLEID,:FROM,:TO,:AT,:AZM,:DIP,:X,:Y,:Z,:A]
   end
 end

@@ -50,25 +50,28 @@ function composite(drillholes, L; method=:flex, domain=nothing)
         j += 1
       end
 
-      # first sub-interval at interface
-      push!(sh, dh[j,:])
-      push!(id, i)
-      sh.TO[end] = AT
+      # make sure this is not a gap
+      if FROM[j] < AT
+        # first sub-interval at interface
+        push!(sh, dh[j,:])
+        push!(id, i)
+        sh.TO[end] = AT
 
-      # second sub-interval at interface
-      push!(sh, dh[j,:])
-      push!(id, i+1)
-      sh.FROM[end] = AT
+        # second sub-interval at interface
+        push!(sh, dh[j,:])
+        push!(id, i+1)
+        sh.FROM[end] = AT
+      end
     end
 
-    # handle last composite interval (i = N)
+    # last composite interval (i = N)
     while j < size(dh, 1)
       j += 1
       push!(sh, dh[j,:])
       push!(id, N)
     end
 
-    # add composite column
+    # add interval id
     sh[!,:INTERVAL] = id
   end
 end

@@ -106,4 +106,4 @@ function aggregate(x, l)
 end
 
 _aggregate(::Type{<:Continuous}, x, l) = (x ⋅ l) / sum(l)
-_aggregate(::Type{<:Multiclass}, x, l) = x[argmax(l)]
+_aggregate(::Type{<:Any},        x, l) = x[argmax(l)]

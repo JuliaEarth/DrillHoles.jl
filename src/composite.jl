@@ -22,8 +22,9 @@ function composite(drillholes, L; method=:flex, domain=nothing)
   # process each drillhole separately
   for hole in groupby(drillholes, :HOLEID)
     # extract survey and interval tables
-    stable = filter(row -> row.SOURCE == :SURVEY, hole)
-    itable = filter(row -> row.SOURCE == :INTERVAL, hole)
+    issurvey = hole.SOURCE .== :SURVEY
+    stable = view(hole,   issurvey, :)
+    itable = view(hole, .!issurvey, :)
 
     # discard columns that will be recomputed
     dh = view(itable, :, Not([:SOURCE,:HOLEID,:AT,:AZM,:DIP,:X,:Y,:Z]))
@@ -38,14 +39,14 @@ function composite(drillholes, L; method=:flex, domain=nothing)
     # that fit perfectly within composite intervals
     j  = 1
     id = Int[]
-    sh = similar(dh, 0)
+    df = similar(dh, 0)
     for i in 1:N-1
       # current interface
       AT = FROM[begin] + i*L
 
       # copy all intervals before interface
       while TO[j] < AT
-        push!(sh, dh[j,:])
+        push!(df, dh[j,:])
         push!(id, i)
         j += 1
       end
@@ -53,36 +54,36 @@ function composite(drillholes, L; method=:flex, domain=nothing)
       # make sure this is not a gap
       if FROM[j] < AT
         # first sub-interval at interface
-        push!(sh, dh[j,:])
+        push!(df, dh[j,:])
         push!(id, i)
-        sh.TO[end] = AT
+        df.TO[end] = AT
 
         # second sub-interval at interface
-        push!(sh, dh[j,:])
+        push!(df, dh[j,:])
         push!(id, i+1)
-        sh.FROM[end] = AT
+        df.FROM[end] = AT
       end
     end
 
     # last composite interval (i = N)
     while j < size(dh, 1)
       j += 1
-      push!(sh, dh[j,:])
+      push!(df, dh[j,:])
       push!(id, N)
     end
 
     # composite id and interval lengths
-    sh[!,:ID_]  = id
-    sh[!,:LEN_] = sh.TO - sh.FROM
+    df[!,:ID_]  = id
+    df[!,:LEN_] = df.TO - df.FROM
 
     # variables of interest
-    allcols = propertynames(sh)
+    allcols = propertynames(df)
     discard = [:FROM,:TO,:ID_,:LEN_]
     allvars = setdiff(allcols, discard)
 
     # perform aggregation
     rows = []
-    for d in groupby(sh, :ID_)
+    for d in groupby(df, :ID_)
       row = Dict{Symbol,Any}()
       for var in allvars
         x = d[!,var]

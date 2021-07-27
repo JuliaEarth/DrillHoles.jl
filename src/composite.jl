@@ -81,13 +81,21 @@ function composite(drillholes, L; method=:flex, domain=nothing)
     allvars = setdiff(allcols, discard)
 
     # perform aggregation
+    rows = []
     for d in groupby(sh, :ID_)
+      row = Dict{Symbol,Any}()
       for var in allvars
         x = d[!,var]
         l = d[!,:LEN_]
         x̄ = aggregate(x, l)
+        row[var] = x̄
       end
+      row[:FROM] = d.FROM[begin]
+      row[:TO]   = d.TO[end]
+
+      push!(rows, row)
     end
+    result = DataFrame(rows)
   end
 end
 

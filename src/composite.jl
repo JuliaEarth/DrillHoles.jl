@@ -80,15 +80,30 @@ function composite(drillholes, L; method=:flex, domain=nothing)
     discard = [:FROM,:TO,:ID_,:LEN_]
     allvars = setdiff(allcols, discard)
 
-    # split variables according to
-    # scientific type to select an
-    # appropriate aggregation method
-    scitypes = map(allvars) do var
-      sh[!,var] |> scitype_union |> nonmissingtype
-    end
-
-    # perform compositing
+    # perform aggregation
     for d in groupby(sh, :ID_)
+      for var in allvars
+        x = d[!,var]
+        l = d[!,:LEN_]
+        x̄ = aggregate(x, l)
+      end
     end
   end
 end
+
+# helper function to aggregate vectors
+function aggregate(x, l)
+  # scientific type
+  T = x |> scitype_union |> nonmissingtype
+
+  # discard missing
+  m  = @. !ismissing(x)
+  xm = x[m]
+  lm = l[m]
+
+  # dipatch on scientific type
+  isempty(xm) ? missing : _aggregate(T, xm, lm)
+end
+
+_aggregate(::Type{<:Continuous}, x, l) = (x ⋅ l) / sum(l)
+_aggregate(::Type{<:Multiclass}, x, l) = x[argmax(l)]

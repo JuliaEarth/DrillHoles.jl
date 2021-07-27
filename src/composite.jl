@@ -71,7 +71,24 @@ function composite(drillholes, L; method=:flex, domain=nothing)
       push!(id, N)
     end
 
-    # add interval id
-    sh[!,:INTERVAL] = id
+    # composite id and interval lengths
+    sh[!,:ID_]  = id
+    sh[!,:LEN_] = sh.TO - sh.FROM
+
+    # variables of interest
+    allcols = propertynames(sh)
+    discard = [:FROM,:TO,:ID_,:LEN_]
+    allvars = setdiff(allcols, discard)
+
+    # split variables according to
+    # scientific type to select an
+    # appropriate aggregation method
+    scitypes = map(allvars) do var
+      sh[!,var] |> scitype_union |> nonmissingtype
+    end
+
+    # perform compositing
+    for d in groupby(sh, :ID_)
+    end
   end
 end

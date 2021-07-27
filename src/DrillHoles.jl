@@ -5,6 +5,7 @@
 module DrillHoles
 
 using DataFrames
+using ScientificTypes
 
 import Interpolations
 const LinearItp = Interpolations.LinearInterpolation

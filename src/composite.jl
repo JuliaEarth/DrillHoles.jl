@@ -19,6 +19,9 @@ to decide whether or not to combine two samples.
 * Abzalov, M. 2018. [Applied Mining Geology](https://www.springer.com/gp/book/9783319392639)
 """
 function composite(drillholes, L; method=:flex, domain=nothing)
+  # initialize rows
+  rows = []
+
   # process each drillhole separately
   for hole in groupby(drillholes, :HOLEID)
     # extract survey and interval tables
@@ -82,22 +85,28 @@ function composite(drillholes, L; method=:flex, domain=nothing)
     allvars = setdiff(allcols, discard)
 
     # perform aggregation
-    rows = []
     for d in groupby(df, :ID_)
       row = Dict{Symbol,Any}()
+
+      row[:SOURCE] = :INTERVAL
+      row[:HOLEID] = hole.HOLEID[begin]
+      row[:FROM]   = d.FROM[begin]
+      row[:TO]     = d.TO[end]
+      row[:AT]     = (row[:FROM] + row[:TO]) / 2
+
       for var in allvars
         x = d[!,var]
         l = d[!,:LEN_]
         x̄ = aggregate(x, l)
         row[var] = x̄
       end
-      row[:FROM] = d.FROM[begin]
-      row[:TO]   = d.TO[end]
 
       push!(rows, row)
     end
-    result = DataFrame(rows)
   end
+
+  # return table with all rows
+  DataFrame(rows)
 end
 
 # helper function to aggregate vectors

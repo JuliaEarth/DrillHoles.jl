@@ -21,7 +21,7 @@ Given a *collar table*, a *survey table* and at least one *interval
 table* (such as assay and lithology), the function `desurvey` can
 be used for desurveying. Examples of these tables are shown bellow:
 
-![tables](imgs/tables_example.png)
+![tables](docs/example.png)
 
 - *Collar table*: stores the coordinates (X, Y, Z) of each drill
 hole with given ID (HOLEID).

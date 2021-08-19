@@ -2,64 +2,91 @@
 
 [![Build Status][build-img]][build-url] [![Coverage][codecov-img]][codecov-url]
 
-`DrillHoles.jl` is a package written in Julia for drill holes desurvey and compositing.
+Functions to desurvey and composite drill hole tables from the
+mining industry.
 
 ## Installation
 
-First, it is necessary to install Julia. Installation instructions for Windows, Linux and macOS are available [here](https://julialang.org/downloads/platform/).
-
-To install `DrillHoles.jl` package: open a terminal, type `julia` to open the REPL and then install the package with the following command. Additionally, the `GeoStats.jl` package is also installed to run the example later.
+Get the latest stable release with Julia's package manager:
 
 ```julia
-using Pkg; Pkg.add("DrillHoles"); Pkg.add("GeoStats")
+] add DrillHoles
 ```
 
-## Drill hole tables
+## Usage
 
-Before using the package, it is necessary to have a collar table, a survey table and at least one interval table (such as assay and lithology). They can be passed as CSV file or `DataFrame`. Examples of data tables are shown below:
+### 1. Desurveying
 
-<p align="center">
-  <img src="imgs/tables_example.png">
-</p>
+Given a *collar table*, a *survey table* and at least one *interval
+table* (such as assay and lithology), the function `desurvey` can
+be used for desurveying. Examples of these tables are shown bellow:
 
-## Usage example
+![tables](imgs/tables_example.png)
+
+- *Collar table*: stores the coordinates (X, Y, Z) of each drill
+hole with given ID (HOLEID).
+- *Survey table*: stores the arc length (AT) and azimuth (AZM) and
+dip (DIP) angles along the drill hole trajectory. Together with the
+collar table it fully specifies the trajectory.
+- *Interval table*: stores the actual measurements taken on cylinders
+of rock defined by an interval of arc lenghts (FROM and TO). Usually,
+there are multiple interval tables with different types of measurements.
+
+Assuming that each of these tables was loaded into a
+[Tables.jl](https://github.com/JuliaData/Tables.jl) table
+(e.g. CSV.File, DataFrame), we can use the following constructors
+to automatically detect the columns:
 
 ```julia
 using DrillHoles
+using CSV
 
-# Inform drill hole tables and main columns
-collar = Collar(file="C:/collar.csv", holeid=:HOLEID, x=:X, y=:Y, z=:Z)
-survey = Survey(file="C:/survey.csv", holeid=:HOLEID, at=:AT, azm=:AZM, dip=:DIP)
-assay  = Interval(file="C:/assay.csv", holeid=:HOLEID, from=:FROM, to=:TO)
-litho  = Interval(file="C:/litho.csv", holeid=:HOLEID, from=:FROM, to=:TO)
-
-# Desurvey drill hole tables
-dh = drillhole(collar, survey, [assay, litho])
-
-# The DrillHole object created have 4 components
-dh.table  # the desurveyed drill hole table
-dh.trace  # the trace file with coordinates at surveyed depths
-dh.pars   # the main column names
-dh.warns  # the table of warning and errors identified during desurvey
-
-# Composite drillhole using :equalcomp mode, which seeks to create composites
-# with the exact `interval` length;  borders are discarded if have length below
-# `mincomp`. Max composite length = `interval`
-comps = composite(dh, interval=1.0, zone=:LITHO, mode=:equalcomp)
-
-# Composite drillhole using :equalcomp mode; composite lengths are defined
-# seeking to include all possible intervals with length above `mincomp`.
-# Max composite length = 1.5*`interval`
-comps = composite(dh, interval=1.0, zone=:LITHO, mode=:nodiscard)
-
-# To use the drill hole file as PointSet into GeoStats.jl framework
-using GeoStats
-pointset = georef(comps.table, (:X,:Y,:Z))
+collar = Collar(CSV.File("collar.csv"))
+survey = Survey(CSV.File("survey.csv"))
+assay  = Interval(CSV.File("assay.csv"))
+litho  = Interval(CSV.File("litho.csv"))
 ```
 
-## Documentation
+If the columns of the tables follow an exotic naming convention,
+users can manually specify the names with keyword arguments:
 
-The documentation of the main functions are available as [docstrings](https://juliahub.com/docs/DrillHoles)
+```julia
+# manually specify column with hole ID
+Collar(CSV.File("collar.csv"), holeid = :MYID)
+```
+
+The `desurvey` function returns a `DataFrame` with standardized
+columns. It supports different dip angle conventions from open
+pit and underground mining as well as different stepping methods.
+Please check the docstring for more details.
+
+```julia
+df = desurvey(collar, survey, [assay, litho])
+```
+
+### 2. Compositing
+
+The result of the `desurvey` function can be passed to the
+`composite` function for compositing the intervals to a given
+length. Please check the docstrings for available methods:
+
+```julia
+# request intervals of length 10.0
+dc = composite(df, 10.0)
+```
+
+### 3. Georeferencing
+
+The `DataFrame` objects produced by both `desurvey` and `composite`
+can be georeferenced and used as input for geostatistical modeling
+with [GeoStats.jl](https://github.com/JuliaEarth/GeoStats.jl):
+
+```julia
+using GeoStats
+
+# georeference table with coordinates
+georef(dc, (:X, :Y, :Z))
+```
 
 [build-img]: https://img.shields.io/github/workflow/status/JuliaEarth/DrillHoles.jl/CI?style=flat-square
 [build-url]: https://github.com/JuliaEarth/DrillHoles.jl/actions

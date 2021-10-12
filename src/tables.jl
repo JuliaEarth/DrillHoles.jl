@@ -16,10 +16,12 @@ Return the required columns of mining `table`.
 """
 function required end
 
-function Base.show(io::IO, mime::MIME"text/plain", t::MiningTable)
+Base.show(io::IO, mime::MIME"text/plain", t::MiningTable) = _show(io, mime, t)
+Base.show(io::IO, mime::MIME"text/html",  t::MiningTable) = _show(io, mime, t)
+function _show(io, mime, t)
   df  = DataFrame(t.table)
-  sub = df[!,collect(required(t))]
-  show(io, mime, sub)
+  req = df[!,collect(required(t))]
+  show(io, mime, req)
 end
 
 """
@@ -86,7 +88,9 @@ Interval(table;
 
 required(table::Interval) = (table.holeid, table.from, table.to)
 
-function Base.show(io::IO, mime::MIME"text/plain", t::Interval)
+Base.show(io::IO, mime::MIME"text/plain", t::Interval) = _showinterval(io, mime, t)
+Base.show(io::IO, mime::MIME"text/html",  t::Interval) = _showinterval(io, mime, t)
+function _showinterval(io, mime, t)
   df  = DataFrame(t.table)
   req = collect(required(t))
   all = [df[!,req] df[!,Not(req)]]

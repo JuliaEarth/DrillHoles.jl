@@ -22,7 +22,14 @@ function required end
 
 Tables.istable(::Type{<:MiningTable}) = true
 
+Tables.rowaccess(::Type{<:MiningTable}) = true
+
 Tables.columnaccess(::Type{<:MiningTable}) = true
+
+function Tables.rows(t::MiningTable)
+  sel = TableOperations.select(t.table, required(t)...)
+  Tables.rows(sel)
+end
 
 function Tables.columns(t::MiningTable)
   sel = TableOperations.select(t.table, required(t)...)
@@ -111,17 +118,26 @@ Interval(table;
 
 required(table::Interval) = (table.holeid, table.from, table.to)
 
+function Tables.rows(t::Interval)
+  sel = _selection(t)
+  Tables.rows(sel)
+end
+
 function Tables.columns(t::Interval)
-  all = Tables.columnnames(t.table)
-  req = collect(required(t))
-  not = setdiff(all, req)
-  sel = TableOperations.select(t.table, [req; not]...)
+  sel = _selection(t)
   Tables.columns(sel)
 end
 
 function Tables.columnnames(t::Interval)
   cols = Tables.columns(t)
   Tables.columnnames(cols) |> collect
+end
+
+function _selection(t::Interval)
+  all = Tables.columnnames(t.table)
+  req = collect(required(t))
+  not = setdiff(all, req)
+  TableOperations.select(t.table, [req; not]...)
 end
 
 Base.show(io::IO, mime::MIME"text/plain", t::Interval) = _showinterval(io, mime, t)

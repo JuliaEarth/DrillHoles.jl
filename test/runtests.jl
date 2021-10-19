@@ -53,18 +53,32 @@ using Test
     # Tables.jl interface
     collar = Collar(DataFrame(holeid=1:2, XCOLLAR=1:2, Y=1:2, z=1:2, w=1:2))
     @test Tables.istable(collar)
+    @test Tables.rowaccess(collar) == true
     @test Tables.columnaccess(collar) == true
     @test Tables.columnnames(collar) == [:holeid, :XCOLLAR, :Y, :z]
-    @test DataFrame(collar) == DataFrame(holeid=1:2, XCOLLAR=1:2, Y=1:2, z=1:2)
+    result = DataFrame(holeid=1:2, XCOLLAR=1:2, Y=1:2, z=1:2)
+    @test DataFrame(Tables.rows(collar)) == result
+    @test DataFrame(Tables.columns(collar)) == result
+    @test DataFrame(collar) == result
+
     survey = Survey(DataFrame(HOLEID=[1,1,2,2], at=[0,5,0,5], BRG=[0,1,20,21], DIP=[89,88,77,76], BAR=[1,2,3,4]))
     @test Tables.istable(survey)
+    @test Tables.rowaccess(survey) == true
     @test Tables.columnaccess(survey) == true
     @test Tables.columnnames(survey) == [:HOLEID, :at, :BRG, :DIP]
-    @test DataFrame(survey) == DataFrame(HOLEID=[1,1,2,2], at=[0,5,0,5], BRG=[0,1,20,21], DIP=[89,88,77,76])
+    result = DataFrame(HOLEID=[1,1,2,2], at=[0,5,0,5], BRG=[0,1,20,21], DIP=[89,88,77,76])
+    @test DataFrame(Tables.rows(survey)) == result
+    @test DataFrame(Tables.columns(survey)) == result
+    @test DataFrame(survey) == result
+
     assays = Interval(DataFrame(foo=[1,2,3], holeid=[1,1,2], FROM=[1,3.5,0], to=[3.5,8,7], A=[1,2,3]))
     @test Tables.istable(assays)
+    @test Tables.rowaccess(assays) == true
     @test Tables.columnaccess(assays) == true
     @test Tables.columnnames(assays) == [:holeid, :FROM, :to, :foo, :A]
-    @test DataFrame(assays) == DataFrame(holeid=[1,1,2], FROM=[1,3.5,0], to=[3.5,8,7], foo=[1,2,3], A=[1,2,3])
+    result = DataFrame(holeid=[1,1,2], FROM=[1,3.5,0], to=[3.5,8,7], foo=[1,2,3], A=[1,2,3])
+    @test DataFrame(Tables.rows(assays)) == result
+    @test DataFrame(Tables.columns(assays)) == result
+    @test DataFrame(assays) == result
   end
 end

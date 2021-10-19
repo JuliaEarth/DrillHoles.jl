@@ -16,6 +16,25 @@ Return the required columns of mining `table`.
 """
 function required end
 
+# -----------------
+# TABLES INTERFACE
+# -----------------
+
+Tables.istable(::Type{<:MiningTable}) = true
+
+Tables.columnaccess(::Type{<:MiningTable}) = true
+
+function Tables.columns(t::MiningTable)
+  sel = TableOperations.select(t.table, required(t)...)
+  Tables.columns(sel)
+end
+
+Tables.columnnames(t::MiningTable) = collect(required(t))
+
+# -----------
+# IO METHODS
+# -----------
+
 Base.show(io::IO, mime::MIME"text/plain", t::MiningTable) = _show(io, mime, t)
 Base.show(io::IO, mime::MIME"text/html",  t::MiningTable) = _show(io, mime, t)
 function _show(io, mime, t)
@@ -23,6 +42,10 @@ function _show(io, mime, t)
   req = df[!,collect(required(t))]
   show(io, mime, req)
 end
+
+# ----------------
+# IMPLEMENTATIONS
+# ----------------
 
 """
     Survey(table; [holeid], [at], [azm], [dip])
@@ -88,6 +111,19 @@ Interval(table;
 
 required(table::Interval) = (table.holeid, table.from, table.to)
 
+function Tables.columns(t::Interval)
+  all = Tables.columnnames(t.table)
+  req = collect(required(t))
+  not = setdiff(all, req)
+  sel = TableOperations.select(t.table, [req; not]...)
+  Tables.columns(sel)
+end
+
+function Tables.columnnames(t::Interval)
+  cols = Tables.columns(t)
+  Tables.columnnames(cols) |> collect
+end
+
 Base.show(io::IO, mime::MIME"text/plain", t::Interval) = _showinterval(io, mime, t)
 Base.show(io::IO, mime::MIME"text/html",  t::Interval) = _showinterval(io, mime, t)
 function _showinterval(io, mime, t)
@@ -96,6 +132,10 @@ function _showinterval(io, mime, t)
   all = [df[!,req] df[!,Not(req)]]
   show(io, mime, all)
 end
+
+# ---------
+# DEFAULTS
+# ---------
 
 # helper function to find default column names
 # from a list of candidate names

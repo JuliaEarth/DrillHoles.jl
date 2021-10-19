@@ -8,7 +8,10 @@ using DataFrames
 using ScientificTypes
 using LinearAlgebra
 
+import Tables
+import TableOperations
 import Interpolations
+
 const LinearItp = Interpolations.LinearInterpolation
 const LinearBC  = Interpolations.Line
 

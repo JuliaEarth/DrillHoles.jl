@@ -16,6 +16,13 @@ Return the required columns of mining `table`.
 """
 function required end
 
+"""
+    selection(table)
+
+Return the subtable of mining `table` with required columns.
+"""
+selection(t::MiningTable) = TableOperations.select(t.table, required(t)...)
+
 # -----------------
 # TABLES INTERFACE
 # -----------------
@@ -27,16 +34,19 @@ Tables.rowaccess(::Type{<:MiningTable}) = true
 Tables.columnaccess(::Type{<:MiningTable}) = true
 
 function Tables.rows(t::MiningTable)
-  sel = TableOperations.select(t.table, required(t)...)
+  sel = selection(t)
   Tables.rows(sel)
 end
 
 function Tables.columns(t::MiningTable)
-  sel = TableOperations.select(t.table, required(t)...)
+  sel = selection(t)
   Tables.columns(sel)
 end
 
-Tables.columnnames(t::MiningTable) = collect(required(t))
+function Tables.columnnames(t::MiningTable)
+  sel = selection(t)
+  Tables.columnnames(sel)
+end
 
 # -----------
 # IO METHODS
@@ -45,9 +55,8 @@ Tables.columnnames(t::MiningTable) = collect(required(t))
 Base.show(io::IO, mime::MIME"text/plain", t::MiningTable) = _show(io, mime, t)
 Base.show(io::IO, mime::MIME"text/html",  t::MiningTable) = _show(io, mime, t)
 function _show(io, mime, t)
-  df  = DataFrame(t.table)
-  req = df[!,collect(required(t))]
-  show(io, mime, req)
+  sel = selection(t)
+  show(io, mime, sel)
 end
 
 # ----------------
@@ -118,35 +127,11 @@ Interval(table;
 
 required(table::Interval) = (table.holeid, table.from, table.to)
 
-function Tables.rows(t::Interval)
-  sel = _selection(t)
-  Tables.rows(sel)
-end
-
-function Tables.columns(t::Interval)
-  sel = _selection(t)
-  Tables.columns(sel)
-end
-
-function Tables.columnnames(t::Interval)
-  cols = Tables.columns(t)
-  Tables.columnnames(cols) |> collect
-end
-
-function _selection(t::Interval)
+function selection(t::Interval)
   all = Tables.columnnames(t.table)
   req = collect(required(t))
   not = setdiff(all, req)
   TableOperations.select(t.table, [req; not]...)
-end
-
-Base.show(io::IO, mime::MIME"text/plain", t::Interval) = _showinterval(io, mime, t)
-Base.show(io::IO, mime::MIME"text/html",  t::Interval) = _showinterval(io, mime, t)
-function _showinterval(io, mime, t)
-  df  = DataFrame(t.table)
-  req = collect(required(t))
-  all = [df[!,req] df[!,Not(req)]]
-  show(io, mime, all)
 end
 
 # ---------

@@ -6,10 +6,10 @@ module DrillHoles
 
 using DataFrames
 using ScientificTypes
+using TableTransforms: Select
 using LinearAlgebra
 
 import Tables
-import TableOperations
 import Interpolations
 
 const LinearItp = Interpolations.LinearInterpolation

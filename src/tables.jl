@@ -21,7 +21,7 @@ function required end
 
 Return the subtable of mining `table` with required columns.
 """
-selection(t::MiningTable) = TableOperations.select(t.table, required(t)...)
+selection(t::MiningTable) = t.table |> Select(required(t))
 
 # -----------------
 # TABLES INTERFACE
@@ -45,7 +45,7 @@ Tables.columnnames(t::MiningTable) = Tables.columnnames(selection(t))
 
 Base.show(io::IO, mime::MIME"text/plain", t::MiningTable) = _show(io, mime, t)
 Base.show(io::IO, mime::MIME"text/html",  t::MiningTable) = _show(io, mime, t)
-_show(io, mime, t) = show(io, mime, DataFrame(selection(t)))
+_show(io, mime, t) = show(io, mime, selection(t))
 
 # ----------------
 # IMPLEMENTATIONS
@@ -119,7 +119,7 @@ function selection(t::Interval)
   all = Tables.columnnames(t.table)
   req = collect(required(t))
   not = setdiff(all, req)
-  TableOperations.select(t.table, [req; not]...)
+  t.table |> Select([req; not])
 end
 
 # ---------

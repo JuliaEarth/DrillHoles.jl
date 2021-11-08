@@ -33,20 +33,11 @@ Tables.rowaccess(::Type{<:MiningTable}) = true
 
 Tables.columnaccess(::Type{<:MiningTable}) = true
 
-function Tables.rows(t::MiningTable)
-  sel = selection(t)
-  Tables.rows(sel)
-end
+Tables.rows(t::MiningTable) = Tables.rows(selection(t))
 
-function Tables.columns(t::MiningTable)
-  sel = selection(t)
-  Tables.columns(sel)
-end
+Tables.columns(t::MiningTable) = Tables.columns(selection(t))
 
-function Tables.columnnames(t::MiningTable)
-  sel = selection(t)
-  Tables.columnnames(sel)
-end
+Tables.columnnames(t::MiningTable) = Tables.columnnames(selection(t))
 
 # -----------
 # IO METHODS
@@ -54,10 +45,7 @@ end
 
 Base.show(io::IO, mime::MIME"text/plain", t::MiningTable) = _show(io, mime, t)
 Base.show(io::IO, mime::MIME"text/html",  t::MiningTable) = _show(io, mime, t)
-function _show(io, mime, t)
-  sel = selection(t)
-  show(io, mime, sel)
-end
+_show(io, mime, t) = show(io, mime, DataFrame(selection(t)))
 
 # ----------------
 # IMPLEMENTATIONS

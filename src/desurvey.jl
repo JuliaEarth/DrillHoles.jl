@@ -3,199 +3,284 @@
 # ------------------------------------------------------------------
 
 """
-  	drillhole(collar::Collar, survey::Survey, intervals::Intervals)
+    desurvey(collar, survey, intervals; step=:arc, indip=:auto, outdip=:down)
 
-Desurvey drill hole based on collar, survey and interval table(s) information.
-The intervals can be passed as a single `Interval` or as an array of
-`Interval`. Outputs a `DrillHole` object.
+Desurvey drill holes based on `collar`, `survey` and `intervals` tables.
+Optionally, specify a `step` method, an input dip angle convention `indip`
+and an output dip angle convention `outdip`.
+
+## Step methods
+
+* `:arc` - spherical arc step
+* `:tan` - simple tanget step
+
+See https://help.seequent.com/Geo/2.1/en-GB/Content/drillholes/desurveying.htm
+
+## Dip conventions
+
+### Input dip angle
+
+* `:auto` - most frequent dip sign points downwards
+* `:down` - positive dip points downwards
+* `:up`   - positive dip points upwards
+
+### Output dip angle
+
+* `:down` - positive dip points downwards
+* `:up`   - positive dip points upwards
 """
-function drillhole(collar::Collar,survey::Survey,intervals::Intervals)
-	# pre process information
-	pars  = getcolnames(survey,intervals)
-	warns = validations(collar, survey, intervals)
-	in("Error",warns[:,:TYPE]) && (return DrillHole(nothing,nothing,pars,warns))
+function desurvey(collar, survey, intervals;
+                  step=:arc, indip=:auto, outdip=:down)
+  # sanity checks
+  @assert step ∈ [:arc,:tan] "invalid step method"
+  @assert indip ∈ [:auto,:down,:up] "invalid input dip convention"
+  @assert outdip ∈ [:down,:up] "invalid output dip convention"
 
-	# create trace information
-	trace = gettrace(collar, survey)
-	fillxyz!(trace, pars)
+  # pre-process input tables
+   ctable, stable, itables = preprocess(collar, survey, intervals, indip)
 
-	# merge interval tables
-	table = mergetables(intervals, pars)
-	fillxyz!(table, trace, pars)
+  # combine all intervals into single table and
+  # assign values to sub-intervals when possible
+  itable = interleave(itables)
 
-	DrillHole(table,trace,pars,warns)
+  # combine intervals with survey table and
+  # interpolate AZM and DIP angles
+  attrib = position(itable, stable)
+
+  # combine attributes with collar table and
+  # compute Cartesian coordinates X, Y and Z
+  result = locate(attrib, ctable, step)
+
+  # post-process output table
+  postprocess(result, outdip)
 end
 
-function getcolnames(s,i)
-	f = i isa Interval ? i.from : i[1].from
-	t = i isa Interval ? i.to   : i[1].to
-	m = s.method == :tangential
-	c = s.convention
+function preprocess(collar, survey, intervals, indip)
+  # select relevant columns of collar table and
+  # standardize column names to HOLEID, X, Y, Z
+  ctable = select(DataFrame(collar.table),
+                  collar.holeid => :HOLEID,
+                  collar.x => ByRow(Float64) => :X,
+                  collar.y => ByRow(Float64) => :Y,
+                  collar.z => ByRow(Float64) => :Z)
 
-	# get most common dip sign and assume it is downwards
-	if c == :auto
-		df = s.file isa String ? CSV.read(s.file, DataFrame) : s.file
-		c  = sum(sign.(df[!,s.dip])) > 0 ? :positivedownwards : :negativedownwards
-	end
+  # select relevant columns of survey table and
+  # standardize column names to HOLEID, AT, AZM, DIP
+  stable = select(DataFrame(survey.table),
+                  survey.holeid => :HOLEID,
+                  survey.at  => ByRow(Float64) => :AT,
+                  survey.azm => ByRow(Float64) => :AZM,
+                  survey.dip => ByRow(Float64) => :DIP)
 
-	inv  = (c == :positivedownwards)
-	pars = (holeid=s.holeid, at=s.at, azm=s.azm, dip=s.dip, from=f,
-	       to=t, invdip=inv, tang=m)
-end
+  # flip sign of dip angle if necessary
+  indip == :auto && (indip = dipguess(stable))
+  indip == :down && (stable.DIP *= -1)
 
-function gettrace(c, s)
-	collar = c.file isa String ? CSV.read(c.file, DataFrame) : c.file
-	survey = s.file isa String ? CSV.read(s.file, DataFrame) : s.file
-
-	# rename collar columns to match survey columns if necessary
-	n1 = (c.x,c.y,c.z,c.holeid)
-	n2 = ( :X, :Y, :Z,s.holeid)
-	namepairs = [a=>b for (a,b) in zip(Symbol.(n1),Symbol.(n2)) if a!=b]
-	length(namepairs) > 0 && rename!(collar, namepairs...)
-
-	# force coordinates to floats if necessary
-	for k in [:X,:Y,:Z]
-		force_float = !(eltype(collar[!,k]) <: Float64)
-		force_float && (collar[!, k] = convert.(Float64, collar[:, k]))
-	end
-
-	# merge collar coordinates to initial survey point
-	collar[!,s.at] .= 0.0
-	trace = leftjoin(survey,collar,on=[s.holeid,s.at])
-	sort!(trace, [s.holeid,s.at])
-end
-
-# minimum curvature desurvey method
-function mincurv(az1, dp1, az2, dp2, d12)
-	dp1, dp2 = (90-dp1), (90-dp2)
-
-    DL = acos(cosd(dp2-dp1)-sind(dp1)*sind(dp2)*(1-cosd(az2-az1)))
-    RF = DL!=0.0 ? 2*tan(DL/2)/DL : 1
-
-    dx = 0.5*d12*(sind(dp1)*sind(az1)+sind(dp2)*sind(az2))*RF
-	dy = 0.5*d12*(sind(dp1)*cosd(az1)+sind(dp2)*cosd(az2))*RF
-	dz = 0.5*d12*(cosd(dp1)+cosd(dp2))*RF
-    dx, dy, dz
-end
-
-# tangential desurvey method
-function tangential(az1, dp1, d12)
-	dp1 = (90-dp1)
-    dx  = d12*sind(dp1)*sind(az1)
-	dy  = d12*sind(dp1)*cosd(az1)
-	dz  = d12*cosd(dp1)
-    dx, dy, dz
-end
-
-# find survey depths bounding given depth
-function findbounds(depths::AbstractArray, at)
-	# get closest survey
-    nearid = findmin(abs.(depths.-at))[2]
-    nearest = depths[nearid]
-
-	# check if depth is after last interval
-	nearid == length(depths) && nearest < at && return (nearid,nearid)
-
-	# return (previous, next) survey ids for given depth
-    nearest == at && return (nearid, nearid)
-    nearest >  at && return (nearid-1, nearid)
-    nearest <  at && return (nearid, nearid+1)
-end
-
-# convert survey angles to 3-D vector and vice versa
-angs2vec(az,dp) = [sind(az)*cosd(-dp), cosd(az)*cosd(-dp), sind(-dp)]
-vec2angs(i,j,k) = [atand(i,j), -asind(k)]
-
-# average angle between two surveyed intervals
-function weightedangs(angs1,angs2,d12,d1x)
-	# angle to vectors
-    v1 = angs2vec(angs1...)
-    v2 = angs2vec(angs2...)
-
-	# weight average vector according to distance to surveys
-    p2   = d1x/d12
-    p1   = 1-p2
-    v12  = v1*p1 + v2*p2
-    v12 /= sqrt(sum(abs2,v12))
-
-	# convert average vector to survey angles and return it
-    azm, dip = vec2angs(v12...)
-    azm, dip
-end
-
-# fill xyz for dh trace files
-function fillxyz!(trace, pars)
-	# get column names
-	at, az, dp, tang = pars.at, pars.azm, pars.dip, pars.tang
-	f = pars.invdip ? -1 : 1
-
-	# loop trace file
-	for i in 1:size(trace,1)
-		# pass depth 0 where collar coordinates are already available
-        trace[i,at] == 0 && continue
-
-		# get distances and angles; return increments dx,dy,dz
-		d12      = trace[i,at] - trace[i-1,at]
-        az1, dp1 = trace[i-1,az], f*trace[i-1,dp]
-        az2, dp2 = trace[i,az], f*trace[i,dp]
-        dx,dy,dz = tang ? tangential(az1,dp1,d12) : mincurv(az1,dp1,az2,dp2,d12)
-
-		# add increments dx,dy,dz to previous coordinates
-        trace[i,:X] = dx + trace[i-1,:X]
-        trace[i,:Y] = dy + trace[i-1,:Y]
-        trace[i,:Z] = dz + trace[i-1,:Z]
+  # duplicate rows if hole id has a single row
+  singles = []
+  for hole in groupby(stable, :HOLEID)
+    if size(hole, 1) == 1
+      single = copy(hole)
+      single.AT .+= 1
+      push!(singles, single)
     end
+  end
+  stable = vcat(stable, singles...)
+
+  # select all columns of interval tables and
+  # standardize column names to HOLEID, FROM, TO
+  itables = [rename(DataFrame(interval.table),
+                    interval.holeid => :HOLEID,
+                    interval.from   => :FROM,
+                    interval.to     => :TO) for interval in intervals]
+
+  ctable, stable, itables
 end
 
-# fill xyz for interval tables with from-to information
-function fillxyz!(tab, trace, pars)
-	# get column names
-	bh, at, az, dp, tang = pars.holeid, pars.at, pars.azm, pars.dip, pars.tang
-	from, to = pars.from, pars.to
-	f = pars.invdip ? -1 : 1
+dipguess(stable) = sum(sign, stable.DIP) > 0 ? :down : :up
 
-	# initialize coordinate columns with float values
-	tab[!,:X] .= -9999.9999
-	tab[!,:Y] .= -9999.9999
-	tab[!,:Z] .= -9999.9999
+function postprocess(result, outdip)
+  # flip sign of dip angle if necessary
+  outdip == :down && (result.DIP *= -1)
 
-	# get first hole name and get trace of that hole
-	lastbhid = tab[1,bh]
-	dht = trace[(trace[!,bh] .== lastbhid),:]
+  # reorder columns for clarity
+  cols = [:SOURCE,:HOLEID,:FROM,:TO,:AT,:AZM,:DIP,:X,:Y,:Z]
+  select(result, cols, Not(cols))
+end
 
-	# loop all intervals
-	for i in 1:size(tab,1)
-		# get hole name and mid point depth
-		bhid, atx = tab[i,bh], tab[i,from]+tab[i,:LENGTH]/2
-		# update trace if hole name is different than previous one
-		bhid != lastbhid && (dht = trace[(trace[!,bh] .== bhid),:])
-		lastbhid = bhid
-		# pass if no survey is available (WARN)
-		size(dht, 1) == 0 && continue
+function interleave(itables)
+  # stack tables in order to see all variables
+  table = vcat(itables..., cols = :union)
 
-		# get surveys bounding given depth
-		b   = findbounds(dht[:,at],atx)
-		d1x = atx-dht[b[1],at]
+  # intialize rows of result table
+  rows = []
 
-		if d1x == 0
-			# if interval depth matches trace depth, get trace coordinates
-			tab[i,:X] = dht[b[1],:X]
-			tab[i,:Y] = dht[b[1],:Y]
-			tab[i,:Z] = dht[b[1],:Z]
-		else
-			# if not, calculate coordinates increments dx,dy,dz
-			d12 = dht[b[2],at]-dht[b[1],at]
-			az1, dp1 = dht[b[1],az], f*dht[b[1],dp]
-			az2, dp2 = dht[b[2],az], f*dht[b[2],dp]
-			azx, dpx = b[1]==b[2] ? (az2, dp2) : weightedangs([az1,dp1],[az2,dp2],d12,d1x)
-			dx,dy,dz = tang ? tangential(az1,dp1,d1x) : mincurv(az1,dp1,azx,dpx,d1x)
+  # process each drillhole separately
+  for hole in groupby(table, :HOLEID)
+    # save hole id for later
+    holeid = first(hole.HOLEID)
 
-			# add increments dx,dy,dz to trace coordinates
-			tab[i,:X] = dx + dht[b[1],:X]
-			tab[i,:Y] = dy + dht[b[1],:Y]
-			tab[i,:Z] = dz + dht[b[1],:Z]
-		end
-	end
-	# check if some coordinate was not filled and return a warning if necessary
-	filter!(row -> row.X != -9999.9999, tab)
+    # find all possible depths
+    depths = [hole.FROM; hole.TO] |> unique |> sort
+
+    # loop over all sub-intervals
+    for i in 2:length(depths)
+      # current sub-interval
+      from, to = depths[i-1], depths[i]
+
+      # intialize row with metadata
+      row = Dict{Symbol,Any}(:HOLEID => holeid, :FROM => from, :TO => to)
+
+      # find all intervals which contain sub-interval
+      samples = filter(I -> I.FROM ≤ from && to ≤ I.TO, hole, view = true)
+
+      # fill values when that is possible assuming homogeneity
+      props = select(samples, Not([:HOLEID,:FROM,:TO]))
+      for name in propertynames(props)
+        ind = findfirst(!ismissing, props[!,name])
+        val = isnothing(ind) ? missing : props[ind,name]
+        row[name] = val
+      end
+
+      # save row and continue
+      push!(rows, row)
+    end
+  end
+
+  # concatenate rows
+  DataFrame(rows)
+end
+
+function position(itable, stable)
+  # copy table to avoid mutation
+  interv = copy(itable)
+
+  # depth equals to middle of interval
+  interv[!,:AT] = (interv.FROM .+ interv.TO) ./ 2
+
+  # register source of data for interval table
+  interv[!,:SOURCE] .= :INTERVAL
+
+  # join attributes and trajectory
+  table = outerjoin(interv, stable, on = [:HOLEID,:AT])
+
+  # register source of data for survey table
+  table.SOURCE = coalesce.(table.SOURCE, :SURVEY)
+
+  # initialize drillholes
+  drillholes = []
+
+  # process each drillhole separately
+  for hole in groupby(table, :HOLEID)
+    dh = sort(hole, :AT)
+
+    # interpolate azm and dip angles
+    interpolate!(dh, :AT, :AZM)
+    interpolate!(dh, :AT, :DIP)
+
+    push!(drillholes, dh)
+  end
+
+  # concatenate all drillholes
+  attrib = reduce(vcat, drillholes)
+
+  # fill FROM and TO of survey table
+  # with AT (degenerate interval)
+  for row in eachrow(attrib)
+    ismissing(row.FROM) && (row.FROM = row.AT)
+    ismissing(row.TO)   && (row.TO   = row.AT)
+  end
+
+  # drop missing type from complete columns
+  dropmissing!(attrib, [:FROM,:TO,:AZM,:DIP])
+end
+
+# interpolate ycol from xcol assuming table is sorted
+function interpolate!(table, xcol, ycol)
+  xs = table[!,xcol]
+  ys = table[!,ycol]
+  is = findall(!ismissing, ys)
+  if !isempty(is)
+    itp = LinearItp(xs[is], ys[is], extrapolation_bc=LinearBC())
+    @inbounds for i in 1:length(xs)
+      ys[i] = itp(xs[i])
+    end
+  end
+end
+
+function locate(attrib, ctable, method)
+  # collar coordinates are at depth 0
+  ctableat = copy(ctable)
+  ctableat[!,:AT] .= 0
+
+  # join tables on hole id and depth
+  table = leftjoin(attrib, ctableat, on = [:HOLEID,:AT])
+
+  # choose a step method
+  step = method == :arc ? arcstep : tanstep
+
+  # initialize drillholes
+  drillholes = []
+
+  # process each drillhole separately
+  for hole in groupby(table, :HOLEID)
+    # sort intervals by depth
+    dh = sort(hole, :AT)
+
+    # view rows from survey table
+    survey = view(dh, dh.SOURCE .== :SURVEY, :)
+
+    # use step method to calculate coordinates on survey
+    at, azm, dip = survey.AT, survey.AZM, survey.DIP
+    x,  y,   z   = survey.X,  survey.Y,   survey.Z
+    @inbounds for i in 2:size(survey, 1)
+      # compute increments dx, dy, dz
+      az1, dp1   = azm[i-1], dip[i-1]
+      az2, dp2   = azm[i],   dip[i]
+      d12        = at[i] - at[i-1]
+      dx, dy, dz = step(az1, dp1, az2, dp2, d12)
+
+      # add increments to x, y, z
+      x[i] = x[i-1] + dx
+      y[i] = y[i-1] + dy
+      z[i] = z[i-1] + dz
+    end
+
+    # interpolate coordinates linearly on intervals
+    interpolate!(dh, :AT, :X)
+    interpolate!(dh, :AT, :Y)
+    interpolate!(dh, :AT, :Z)
+
+    push!(drillholes, dh)
+  end
+
+  # concatenate drillhole trajectories
+  result = reduce(vcat, drillholes)
+
+  # drop missing type from complete columns
+  dropmissing!(result, [:X,:Y,:Z])
+end
+
+# -------------
+# STEP METHODS
+# -------------
+
+# assumes positive dip points upwards
+function arcstep(az1, dp1, az2, dp2, d12)
+  dp1, dp2 = (90.0-dp1), (90.0-dp2)
+  DL = acos(cosd(dp2-dp1)-sind(dp1)*sind(dp2)*(1-cosd(az2-az1)))
+  RF = DL ≈ 0.0 ? 1.0 : 2*tan(DL/2)/DL
+  dx = 0.5*d12*(sind(dp1)*sind(az1)+sind(dp2)*sind(az2))*RF
+  dy = 0.5*d12*(sind(dp1)*cosd(az1)+sind(dp2)*cosd(az2))*RF
+  dz = 0.5*d12*(cosd(dp1)+cosd(dp2))*RF
+  dx, dy, dz
+end
+
+# assumes positive dip points upwards
+function tanstep(az1, dp1, az2, dp2, d12)
+  dp1 = (90.0-dp1)
+  dx  = d12*sind(dp1)*sind(az1)
+  dy  = d12*sind(dp1)*cosd(az1)
+  dz  = d12*cosd(dp1)
+  dx, dy, dz
 end

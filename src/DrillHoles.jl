@@ -4,21 +4,30 @@
 
 module DrillHoles
 
-using CSV
 using DataFrames
-using StatsBase: mean, weights
+using ScientificTypes
+using TableTransforms: Select
+using LinearAlgebra
 
-include("definitions.jl")
-include("compositing.jl")
+import Tables
+import Interpolations
+
+const LinearItp = Interpolations.LinearInterpolation
+const LinearBC  = Interpolations.Line
+
+include("tables.jl")
 include("desurvey.jl")
-include("mergetables.jl")
-include("validations.jl")
+include("composite.jl")
 
 export
-  composite,
-  drillhole,
-  exportwarns,
+  # types
+  MiningTable,
+  Survey,
   Collar,
   Interval,
-  Survey
+
+  # functions
+  desurvey,
+  composite
+
 end

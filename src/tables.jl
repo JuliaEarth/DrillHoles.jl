@@ -62,6 +62,11 @@ struct Survey{𝒯} <: MiningTable
   at::Symbol
   azm::Symbol
   dip::Symbol
+
+  function Survey{𝒯}(table, holeid, at, azm, dip) where {𝒯}
+    assertcols(table, [holeid,at,azm,dip])
+    new(table, holeid, at, azm, dip)
+  end
 end
 
 Survey(table;
@@ -69,7 +74,7 @@ Survey(table;
        at     = defaultat(table),
        azm    = defaultazm(table),
        dip    = defaultdip(table)) =
-  Survey(table, holeid, at, azm, dip)
+  Survey{typeof(table)}(table, holeid, at, azm, dip)
 
 required(table::Survey) = (table.holeid, table.at, table.azm, table.dip)
 
@@ -84,6 +89,11 @@ struct Collar{𝒯} <: MiningTable
   x::Symbol
   y::Symbol
   z::Symbol
+
+  function Collar{𝒯}(table, holeid, x, y, z) where {𝒯}
+    assertcols(table, [holeid,x,y,z])
+    new(table, holeid, x, y, z)
+  end
 end
 
 Collar(table;
@@ -91,7 +101,7 @@ Collar(table;
        x      = defaultx(table),
        y      = defaulty(table),
        z      = defaultz(table)) =
-  Collar(table, holeid, x, y, z)
+  Collar{typeof(table)}(table, holeid, x, y, z)
 
 required(table::Collar) = (table.holeid, table.x, table.y, table.z)
 
@@ -105,13 +115,18 @@ struct Interval{𝒯} <: MiningTable
   holeid::Symbol
   from::Symbol
   to::Symbol
+
+  function Interval{𝒯}(table, holeid, from, to) where {𝒯}
+    assertcols(table, [holeid,from,to])
+    new(table, holeid, from, to)
+  end
 end
 
 Interval(table;
          holeid = defaultid(table),
          from   = defaultfrom(table),
          to     = defaultto(table)) =
-  Interval(table, holeid, from, to)
+  Interval{typeof(table)}(table, holeid, from, to)
 
 required(table::Interval) = (table.holeid, table.from, table.to)
 
@@ -129,13 +144,21 @@ end
 # helper function to find default column names
 # from a list of candidate names
 function default(table, names)
+  cols  = Tables.columns(table)
+  avail = Tables.columnnames(cols)
   for name in names
-    if name ∈ Tables.columnnames(table)
+    if name ∈ avail
       return name
     end
   end
   ns = join(names, ", ", " and ")
-  throw(ArgumentError("None of the names $ns was found in table. Please specify name explicitly."))
+  av = join(avail, ", ", " and ")
+  throw(ArgumentError(
+    """\n
+    None of the names $ns was found in table.
+    Please specify name explicitly. Available names are $av.
+    """
+  ))
 end
 
 defaultid(table)   = default(table, [:HOLEID,:BHID,:holeid,:bhid])
@@ -147,3 +170,16 @@ defaultdip(table)  = default(table, [:DIP,:dip])
 defaultat(table)   = default(table, [:AT,:at])
 defaultfrom(table) = default(table, [:FROM,:from])
 defaultto(table)   = default(table, [:TO,:to])
+
+# --------
+# HELPERS
+# --------
+
+function assertcols(table, spec)
+  cols  = Tables.columns(table)
+  avail = Tables.columnnames(cols)
+  if !(spec ⊆ avail)
+    wrong = join(setdiff(spec, avail), ", ", " and ")
+    throw(ArgumentError("None of the names $wrong was found in the table."))
+  end
+end

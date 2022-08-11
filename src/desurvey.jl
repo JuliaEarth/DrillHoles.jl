@@ -58,7 +58,7 @@ end
 function preprocess(collar, survey, intervals, indip)
   # select relevant columns of collar table and
   # standardize column names to HOLEID, X, Y, Z
-  ctable = select(DataFrame(collar.table),
+  ctable = select(DataFrame(collar.table) |> dropmissing,
                   collar.holeid => :HOLEID,
                   collar.x => ByRow(Float64) => :X,
                   collar.y => ByRow(Float64) => :Y,
@@ -66,7 +66,7 @@ function preprocess(collar, survey, intervals, indip)
 
   # select relevant columns of survey table and
   # standardize column names to HOLEID, AT, AZM, DIP
-  stable = select(DataFrame(survey.table),
+  stable = select(DataFrame(survey.table) |> dropmissing,
                   survey.holeid => :HOLEID,
                   survey.at  => ByRow(Float64) => :AT,
                   survey.azm => ByRow(Float64) => :AZM,

@@ -64,7 +64,8 @@ struct Survey{𝒯} <: MiningTable
   dip::Symbol
 
   function Survey{𝒯}(table, holeid, at, azm, dip) where {𝒯}
-    assertcols(table, [holeid,at,azm,dip])
+    assertspec(table, [holeid,at,azm,dip])
+    assertnum(table, [at,azm,dip])
     new(table, holeid, at, azm, dip)
   end
 end
@@ -91,7 +92,8 @@ struct Collar{𝒯} <: MiningTable
   z::Symbol
 
   function Collar{𝒯}(table, holeid, x, y, z) where {𝒯}
-    assertcols(table, [holeid,x,y,z])
+    assertspec(table, [holeid,x,y,z])
+    assertnum(table, [x,y,z])
     new(table, holeid, x, y, z)
   end
 end
@@ -117,7 +119,8 @@ struct Interval{𝒯} <: MiningTable
   to::Symbol
 
   function Interval{𝒯}(table, holeid, from, to) where {𝒯}
-    assertcols(table, [holeid,from,to])
+    assertspec(table, [holeid,from,to])
+    assertnum(table, [from,to])
     new(table, holeid, from, to)
   end
 end
@@ -171,15 +174,35 @@ defaultat(table)   = default(table, [:AT,:at])
 defaultfrom(table) = default(table, [:FROM,:from])
 defaultto(table)   = default(table, [:TO,:to])
 
-# --------
-# HELPERS
-# --------
+# -----------
+# ASSERTIONS
+# -----------
 
-function assertcols(table, spec)
+function assertspec(table, names)
   cols  = Tables.columns(table)
   avail = Tables.columnnames(cols)
-  if !(spec ⊆ avail)
-    wrong = join(setdiff(spec, avail), ", ", " and ")
+  if !(names ⊆ avail)
+    wrong = join(setdiff(names, avail), ", ", " and ")
     throw(ArgumentError("None of the names $wrong was found in the table."))
+  end
+end
+
+function assertnum(table, names)
+  cols = Tables.columns(table)
+  for name in names
+    x = Tables.getcolumn(cols, name)
+    T = eltype(x)
+    S = elscitype(x)
+    V = Union{Continuous,Count,Missing}
+    if !(S <: V)
+      throw(ArgumentError(
+        """\n
+        Column $name should contain numerical values,
+        but it currently has values of type $T. Please
+        fix the type before trying to load the data into
+        the mining table.
+        """
+      ))
+    end
   end
 end

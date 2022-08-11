@@ -6,7 +6,7 @@ module DrillHoles
 
 using DataFrames
 using ScientificTypes
-using TableTransforms: Select
+using TableTransforms
 using LinearAlgebra
 
 import Tables

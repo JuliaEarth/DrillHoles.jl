@@ -58,19 +58,33 @@ end
 function preprocess(collar, survey, intervals, indip)
   # select relevant columns of collar table and
   # standardize column names to HOLEID, X, Y, Z
-  ctable = select(DataFrame(collar.table) |> dropmissing,
-                  collar.holeid => :HOLEID,
-                  collar.x => ByRow(Float64) => :X,
-                  collar.y => ByRow(Float64) => :Y,
-                  collar.z => ByRow(Float64) => :Z)
+  ctable = let
+    f1 = Rename(collar.holeid => :HOLEID,
+                collar.x      => :X,
+                collar.y      => :Y,
+                collar.z      => :Z)
+    f2 = Select(:HOLEID, :X, :Y, :Z)
+    f3 = DropMissing()
+    f4 = Coerce(:X => Continuous,
+                :Y => Continuous,
+                :Z => Continuous)
+    DataFrame(collar.table) |> (f1 → f2 → f3 → f4)
+  end
 
   # select relevant columns of survey table and
   # standardize column names to HOLEID, AT, AZM, DIP
-  stable = select(DataFrame(survey.table) |> dropmissing,
-                  survey.holeid => :HOLEID,
-                  survey.at  => ByRow(Float64) => :AT,
-                  survey.azm => ByRow(Float64) => :AZM,
-                  survey.dip => ByRow(Float64) => :DIP)
+  stable = let
+    f1 = Rename(survey.holeid => :HOLEID,
+                survey.at     => :AT,
+                survey.azm    => :AZM,
+                survey.dip    => :DIP)
+    f2 = Select(:HOLEID, :AT, :AZM, :DIP)
+    f3 = DropMissing()
+    f4 = Coerce(:AT  => Continuous,
+                :AZM => Continuous,
+                :DIP => Continuous)
+    DataFrame(survey.table) |> (f1 → f2 → f3 → f4)
+  end
 
   # flip sign of dip angle if necessary
   indip == :auto && (indip = dipguess(stable))

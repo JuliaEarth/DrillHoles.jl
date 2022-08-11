@@ -24,10 +24,11 @@ function composite(drillholes, L; method=:flex, domain=nothing)
 
   # process each drillhole separately
   for hole in groupby(drillholes, :HOLEID)
-    # extract survey and interval tables
-    issurvey = hole.SOURCE .== :SURVEY
-    stable = view(hole,   issurvey, :)
-    itable = view(hole, .!issurvey, :)
+    # extract interval table
+    itable = view(hole, hole.SOURCE .== :INTERVAL, :)
+
+    # skip if the interval table is empty
+    isempty(itable) && continue
 
     # discard columns that will be recomputed
     dh = view(itable, :, Not([:SOURCE,:HOLEID,:AT,:AZM,:DIP,:X,:Y,:Z]))

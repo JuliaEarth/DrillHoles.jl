@@ -1,18 +1,15 @@
-# DrillHoles
+# DrillHoles.jl
 
 [![Build Status][build-img]][build-url] [![Coverage][codecov-img]][codecov-url]
 
-Functions to desurvey and composite drill hole tables from the
-mining industry.
+Desurvey and composite drill hole tables from the mining industry.
 
 ## Installation
 
 Get the latest stable release with Julia's package manager:
 
 ```julia
-using Pkg
-
-Pkg.add("DrillHoles")
+] add DrillHoles
 ```
 
 ## Usage

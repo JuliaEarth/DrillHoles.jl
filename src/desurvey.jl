@@ -3,11 +3,14 @@
 # ------------------------------------------------------------------
 
 """
-    desurvey(collar, survey, intervals; step=:arc, indip=:auto, outdip=:down)
+    desurvey(collar, survey, intervals;
+             step=:arc, indip=:auto, outdip=:down,
+             len=nothing)
 
 Desurvey drill holes based on `collar`, `survey` and `intervals` tables.
 Optionally, specify a `step` method, an input dip angle convention `indip`
-and an output dip angle convention `outdip`.
+and an output dip angle convention `outdip`. The option `len` can be used
+to composite samples to a given length.
 
 ## Step methods
 
@@ -30,7 +33,8 @@ See https://help.seequent.com/Geo/2.1/en-GB/Content/drillholes/desurveying.htm
 * `:up`   - positive dip points upwards
 """
 function desurvey(collar, survey, intervals;
-                  step=:arc, indip=:auto, outdip=:down)
+                  step=:arc, indip=:auto, outdip=:down,
+                  len=nothing)
   # sanity checks
   @assert step ∈ [:arc,:tan] "invalid step method"
   @assert indip ∈ [:auto,:down,:up] "invalid input dip convention"
@@ -43,13 +47,16 @@ function desurvey(collar, survey, intervals;
   # assign values to sub-intervals when possible
   itable = interleave(itables)
 
-  # combine intervals with survey table and
-  # interpolate AZM and DIP angles
-  attrib = position(itable, stable)
+  # composite samples to a specified length
+  ltable = isnothing(len) ? itable : composite(itable, len)
 
-  # combine attributes with collar table and
+  # combine composites with survey table and
+  # interpolate AZM and DIP angles
+  ftable = position(ltable, stable)
+
+  # combine samples with collar table and
   # compute Cartesian coordinates X, Y and Z
-  result = locate(attrib, ctable, step)
+  result = locate(ftable, ctable, step)
 
   # post-process output table
   postprocess(result, outdip)
@@ -117,9 +124,12 @@ function postprocess(result, outdip)
   # flip sign of dip angle if necessary
   outdip == :down && (result.DIP *= -1)
 
+  # discard auxiliary SOURCE information
+  dh = view(result, result.SOURCE .== :INTERVAL, Not(:SOURCE))
+
   # reorder columns for clarity
-  cols = [:SOURCE,:HOLEID,:FROM,:TO,:AT,:AZM,:DIP,:X,:Y,:Z]
-  select(result, cols, Not(cols))
+  cols = [:HOLEID,:FROM,:TO,:AT,:AZM,:DIP,:X,:Y,:Z]
+  select(dh, cols, Not(cols))
 end
 
 function interleave(itables)
@@ -243,6 +253,9 @@ function locate(attrib, ctable, method)
 
     # view rows from survey table
     survey = view(dh, dh.SOURCE .== :SURVEY, :)
+
+    # cannot interpolate a single row
+    size(survey, 1) > 1 || continue
 
     # use step method to calculate coordinates on survey
     at, azm, dip = survey.AT, survey.AZM, survey.DIP

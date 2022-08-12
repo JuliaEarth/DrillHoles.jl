@@ -3,41 +3,31 @@
 # ------------------------------------------------------------------
 
 """
-    composite(dh, L; method=:flex, domain=nothing)
+    composite(itable, len)
 
-Composite drillhole samples `dh` produced by [`desurvey`](@ref) to a
-given length `L` using `method`. Optionally, specify a `domain` variable
-to decide whether or not to combine two samples.
-
-## Methods
-
-- `:cons` - samples have the exact specified `length`
-- `:flex` - samples can have slightly different `length`
+Composite interval table `itable` to a given length `len`.
 
 ## References
 
 * Abzalov, M. 2018. [Applied Mining Geology](https://www.springer.com/gp/book/9783319392639)
 """
-function composite(drillholes, L; method=:flex, domain=nothing)
+function composite(itable, len)
   # initialize rows
   rows = []
 
   # process each drillhole separately
-  for hole in groupby(drillholes, :HOLEID)
-    # extract interval table
-    itable = view(hole, hole.SOURCE .== :INTERVAL, :)
-
-    # skip if the interval table is empty
-    isempty(itable) && continue
+  for hole in groupby(itable, :HOLEID)
+    # skip if hole has no data
+    isempty(hole) && continue
 
     # discard columns that will be recomputed
-    dh = view(itable, :, Not([:SOURCE,:HOLEID,:AT,:AZM,:DIP,:X,:Y,:Z]))
+    dh = view(hole, :, Not(:HOLEID))
 
     # retrieve depth columns
     FROM, TO = dh.FROM, dh.TO
 
     # number of composite intervals
-    N = ceil(Int, (TO[end] - FROM[begin]) / L)
+    N = ceil(Int, (TO[end] - FROM[begin]) / len)
 
     # split original intervals into sub-intervals
     # that fit perfectly within composite intervals
@@ -46,7 +36,7 @@ function composite(drillholes, L; method=:flex, domain=nothing)
     df = similar(dh, 0)
     for i in 1:N-1
       # current interface
-      AT = FROM[begin] + i*L
+      AT = FROM[begin] + i*len
 
       # copy all intervals before interface
       while TO[j] < AT
@@ -93,7 +83,6 @@ function composite(drillholes, L; method=:flex, domain=nothing)
       row[:HOLEID] = hole.HOLEID[begin]
       row[:FROM]   = d.FROM[begin]
       row[:TO]     = d.TO[end]
-      row[:AT]     = (row[:FROM] + row[:TO]) / 2
 
       for var in allvars
         x = d[!,var]
@@ -106,7 +95,7 @@ function composite(drillholes, L; method=:flex, domain=nothing)
     end
   end
 
-  # return table with all rows
+  # return table with all composites
   DataFrame(rows)
 end
 

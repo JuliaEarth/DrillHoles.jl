@@ -15,11 +15,12 @@ Get the latest stable release with Julia's package manager:
 
 ## Usage
 
-### 1. Desurveying
+### Desurveying
 
 Given a *collar table*, a *survey table* and at least one *interval
 table* (such as assay and lithology), the function `desurvey` can
-be used for desurveying. Examples of these tables are shown bellow:
+be used for desurveying and compositing. Examples of these tables
+are shown bellow:
 
 ![tables](docs/example.png)
 
@@ -55,37 +56,30 @@ users can manually specify the names with keyword arguments:
 Collar(CSV.File("collar.csv"), holeid = :MYID)
 ```
 
+Please check the documentation of `Collar`, `Survey` and `Interval`
+for more details.
+
 The `desurvey` function returns a `DataFrame` with standardized
 columns. It supports different dip angle conventions from open
 pit and underground mining as well as different stepping methods.
-Please check the docstring for more details.
+The option `len` can be used for compositing. Please check the
+documentation for more details.
 
 ```julia
-df = desurvey(collar, survey, [assay, litho])
+dh = desurvey(collar, survey, [assay, litho])
 ```
 
-### 2. Compositing
+### Georeferencing
 
-The result of the `desurvey` function can be passed to the
-`composite` function for compositing the intervals to a given
-length. Please check the docstrings for available methods:
-
-```julia
-# request intervals of length 10.0
-dc = composite(df, 10.0)
-```
-
-### 3. Georeferencing
-
-The `DataFrame` objects produced by both `desurvey` and `composite`
-can be georeferenced and used as input for geostatistical modeling
+The result of `desurvey` can be georeferenced
+and used as input for geostatistical modeling
 with [GeoStats.jl](https://github.com/JuliaEarth/GeoStats.jl):
 
 ```julia
 using GeoStats
 
 # georeference table with coordinates
-georef(dc, (:X, :Y, :Z))
+georef(dh, (:X, :Y, :Z))
 ```
 
 [build-img]: https://img.shields.io/github/workflow/status/JuliaEarth/DrillHoles.jl/CI?style=flat-square

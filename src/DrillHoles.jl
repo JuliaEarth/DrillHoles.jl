@@ -27,7 +27,6 @@ export
   Interval,
 
   # functions
-  desurvey,
-  composite
+  desurvey
 
 end

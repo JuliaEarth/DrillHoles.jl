@@ -10,7 +10,9 @@ mining industry.
 Get the latest stable release with Julia's package manager:
 
 ```julia
-] add DrillHoles
+using Pkg
+
+Pkg.add("DrillHoles")
 ```
 
 ## Usage

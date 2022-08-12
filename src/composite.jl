@@ -16,12 +16,9 @@ function composite(itable, len)
   rows = []
 
   # process each drillhole separately
-  for hole in groupby(itable, :HOLEID)
+  for dh in groupby(itable, :HOLEID)
     # skip if hole has no data
-    isempty(hole) && continue
-
-    # discard columns that will be recomputed
-    dh = view(hole, :, Not(:HOLEID))
+    isempty(dh) && continue
 
     # retrieve depth columns
     FROM, TO = dh.FROM, dh.TO
@@ -80,7 +77,7 @@ function composite(itable, len)
       row = Dict{Symbol,Any}()
 
       row[:SOURCE] = :INTERVAL
-      row[:HOLEID] = hole.HOLEID[begin]
+      row[:HOLEID] = dh.HOLEID[begin]
       row[:FROM]   = d.FROM[begin]
       row[:TO]     = d.TO[end]
 

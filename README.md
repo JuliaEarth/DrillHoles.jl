@@ -4,14 +4,6 @@
 
 Desurvey and composite drill hole tables from the mining industry.
 
-## Installation
-
-Get the latest stable release with Julia's package manager:
-
-```julia
-] add DrillHoles
-```
-
 ## Usage
 
 ### Desurveying

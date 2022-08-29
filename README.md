@@ -4,9 +4,15 @@
 
 Desurvey and composite drill hole tables from the mining industry.
 
-## Usage
+## Installation
 
-### Desurveying
+Get the latest stable release with Julia's package manager:
+
+```
+] add DrillHoles
+```
+
+## Usage
 
 Given a *collar table*, a *survey table* and at least one *interval
 table* (such as assay and lithology), the function `desurvey` can
@@ -50,28 +56,19 @@ Collar(CSV.File("collar.csv"), holeid = :MYID)
 Please check the documentation of `Collar`, `Survey` and `Interval`
 for more details.
 
-The `desurvey` function returns a `DataFrame` with standardized
-columns. It supports different dip angle conventions from open
-pit and underground mining as well as different stepping methods.
-The option `len` can be used for compositing. Please check the
-documentation for more details.
+By default, the `desurvey` function returns a
+[geospatial table](https://juliaearth.github.io/GeoStats.jl/stable/data.html)
+compatible with [GeoStats.jl](https://github.com/JuliaEarth/GeoStats.jl).
+It supports different dip angle conventions from open pit and underground
+mining as well as different stepping methods:
 
 ```julia
-dh = desurvey(collar, survey, [assay, litho])
+samples = desurvey(collar, survey, [assay, litho])
 ```
 
-### Georeferencing
-
-The result of `desurvey` can be georeferenced
-and used as input for geostatistical modeling
-with [GeoStats.jl](https://github.com/JuliaEarth/GeoStats.jl):
-
-```julia
-using GeoStats
-
-# georeference table with coordinates
-georef(dh, (:X, :Y, :Z))
-```
+The option `geom` can be used to control the output format, and the option
+`len` can be used for compositing. Please check the documentation for more
+details.
 
 [build-img]: https://img.shields.io/github/workflow/status/JuliaEarth/DrillHoles.jl/CI?style=flat-square
 [build-url]: https://github.com/JuliaEarth/DrillHoles.jl/actions

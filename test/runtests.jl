@@ -9,7 +9,7 @@ using Test
     assays = Interval(DataFrame(HOLEID=[1,1,2], FROM=[1,3.5,0], TO=[3.5,8,7], A=[1,2,3]))
     lithos = Interval(DataFrame(HOLEID=[1,2,2], FROM=[0,0,4.4], TO=[8,4.4,8], L=["A","B","C"]))
 
-    dh = desurvey(collar, survey, [assays, lithos])
+    dh = desurvey(collar, survey, [assays, lithos], geom=:none)
     @test dh.HOLEID == [1, 1, 1, 2, 2, 2]
     @test dh.FROM   ≈ [0.0, 1.0, 3.5, 0.0, 4.4, 7.0]
     @test dh.TO     ≈ [1.0, 3.5, 8.0, 4.4, 7.0, 8.0]
@@ -23,7 +23,7 @@ using Test
     @test isequal(dh.L, ["A", "A", "A", "B", "C", "C"])
 
     # changing step method only changes coordinates X, Y, Z
-    dh2 = desurvey(collar, survey, [assays, lithos], step=:tan)
+    dh2 = desurvey(collar, survey, [assays, lithos], step=:tan, geom=:none)
     @test isequal(dh[!,Not([:X,:Y,:Z])], dh2[!,Not([:X,:Y,:Z])])
     @test isapprox(dh2.X, [1.0, 1.0, 1.0, 2.169263142065488, 2.4385454135333093, 2.5770334388596177], atol=1e-5)
     @test isapprox(dh2.Y, [1.0087262032186417, 1.039267914483888, 1.10035133701438, 2.4650466607708674, 3.204893621088157, 3.5853863435370488], atol=1e-5)
@@ -46,7 +46,7 @@ using Test
     @test assays.to == :to
 
     # result has standard column names
-    dh = desurvey(collar, survey, [assays])
+    dh = desurvey(collar, survey, [assays], geom=:none)
     @test propertynames(dh) == [:HOLEID,:FROM,:TO,:AT,:AZM,:DIP,:X,:Y,:Z,:A]
 
     # Tables.jl interface

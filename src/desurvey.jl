@@ -5,12 +5,17 @@
 """
     desurvey(collar, survey, intervals;
              step=:arc, indip=:auto, outdip=:down,
-             len=nothing)
+             len=nothing, geom=:cylinder, radius=1.0)
 
 Desurvey drill holes based on `collar`, `survey` and `intervals` tables.
 Optionally, specify a `step` method, an input dip angle convention `indip`
-and an output dip angle convention `outdip`. The option `len` can be used
-to composite samples to a given length.
+and an output dip angle convention `outdip`.
+
+The option `len` can be used to composite samples to a given length, and
+the option `geom` can be used to specify the geometry of each sample.
+
+In the case of `:cylinder` geometry, the option `radius` can be used to
+specify the radius of each cylinder.
 
 ## Step methods
 
@@ -31,10 +36,16 @@ See https://help.seequent.com/Geo/2.1/en-GB/Content/drillholes/desurveying.htm
 
 * `:down` - positive dip points downwards
 * `:up`   - positive dip points upwards
+
+## Output geometries
+
+* `:cylinder` - geospatial data with cylinders
+* `:point`    - geospatial data with points
+* `:none`     - data frame with usual columns
 """
 function desurvey(collar, survey, intervals;
                   step=:arc, indip=:auto, outdip=:down,
-                  len=nothing)
+                  len=nothing, geom=:cylinder, radius=1.0)
   # sanity checks
   @assert step ∈ [:arc,:tan] "invalid step method"
   @assert indip ∈ [:auto,:down,:up] "invalid input dip convention"
@@ -59,7 +70,7 @@ function desurvey(collar, survey, intervals;
   result = locate(ftable, ctable, step)
 
   # post-process output table
-  postprocess(result, outdip)
+  postprocess(result, outdip, geom, radius)
 end
 
 function preprocess(collar, survey, intervals, indip)
@@ -120,16 +131,82 @@ end
 
 dipguess(stable) = sum(sign, stable.DIP) > 0 ? :down : :up
 
-function postprocess(result, outdip)
+function postprocess(table, outdip, geom, radius)
   # flip sign of dip angle if necessary
-  outdip == :down && (result.DIP *= -1)
+  outdip == :down && (table.DIP *= -1)
 
   # discard auxiliary SOURCE information
-  dh = view(result, result.SOURCE .== :INTERVAL, Not(:SOURCE))
+  samples = view(table, table.SOURCE .== :INTERVAL, Not(:SOURCE))
 
   # reorder columns for clarity
-  cols = [:HOLEID,:FROM,:TO,:AT,:AZM,:DIP,:X,:Y,:Z]
-  select(dh, cols, Not(cols))
+  cols  = [:HOLEID,:FROM,:TO,:AT,:AZM,:DIP,:X,:Y,:Z]
+  holes = select(samples, cols, Not(cols))
+
+  # return data frame if no geometry is specified
+  geom == :none && return holes
+
+  # initialize result
+  result = []
+
+  # process each drillhole separately
+  for dh in groupby(holes, :HOLEID)
+    # skip if hole has no data
+    isempty(dh) && continue
+
+    # columns with data
+    values = select(dh, Not(cols[2:end]))
+
+    # coordinates of centroids
+    coords = collect(zip(dh.X, dh.Y, dh.Z))
+
+    # geometry elements along hole
+    elems = if geom == :cylinder
+      # all cylinders, except first and last
+      cylinders = map(2:length(coords)-1) do i
+        # points at cylinder planes
+        point₁  = (coords[i]   .+ coords[i-1]) ./ 2
+        point₂  = (coords[i+1] .+ coords[i]  ) ./ 2
+
+        # normals to cylinder planes
+        normal₁ = coords[i]   .- coords[i-1]
+        normal₂ = coords[i+1] .- coords[i]
+
+        # bottom and top planes
+        plane₁  = Plane(point₁, normal₁)
+        plane₂  = Plane(point₂, normal₂)
+
+        # cylinder with given radius and planes
+        Cylinder(radius, plane₁, plane₂)
+      end
+
+      # add first cylinder
+      fpoint = Point(first(coords))
+      fplane = bottom(first(cylinders))
+      fdelta = fpoint - origin(fplane)
+      fcylin = Cylinder(radius, Plane(fpoint + fdelta, -fdelta), fplane)
+      pushfirst!(cylinders, fcylin)
+
+      # add last cylinder
+      lpoint = Point(last(coords))
+      lplane = top(last(cylinders))
+      ldelta = lpoint - origin(lplane)
+      lcylin = Cylinder(radius, lplane, Plane(lpoint + ldelta, ldelta))
+      push!(cylinders, lcylin)
+
+      # return cylinders
+      cylinders
+    else
+      # return points
+      Point.(coords)
+    end
+
+    push!(result, (values, elems))
+  end
+
+  etable = reduce(vcat, first.(result))
+  egeoms = reduce(vcat, last.(result))
+
+  meshdata(Collection(egeoms), etable=etable)
 end
 
 function interleave(itables)

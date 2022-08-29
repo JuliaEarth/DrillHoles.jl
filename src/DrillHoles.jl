@@ -4,6 +4,7 @@
 
 module DrillHoles
 
+using Meshes
 using DataFrames
 using ScientificTypes
 using TableTransforms

@@ -13,7 +13,7 @@ using LinearAlgebra
 import Tables
 import Interpolations
 
-const LinearItp = Interpolations.LinearInterpolation
+const LinearItp = Interpolations.linear_interpolation
 const LinearBC  = Interpolations.Line
 
 include("tables.jl")

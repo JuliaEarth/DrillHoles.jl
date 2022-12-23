@@ -70,7 +70,7 @@ The option `geom` can be used to control the output format, and the option
 `len` can be used for compositing. Please check the documentation for more
 details.
 
-[build-img]: https://img.shields.io/github/workflow/status/JuliaEarth/DrillHoles.jl/CI?style=flat-square
+[build-img]: https://img.shields.io/github/actions/workflow/status/JuliaEarth/DrillHoles.jl/CI.yml?branch=master&style=flat-square
 [build-url]: https://github.com/JuliaEarth/DrillHoles.jl/actions
 
 [codecov-img]: https://codecov.io/gh/JuliaEarth/DrillHoles.jl/branch/master/graph/badge.svg

@@ -43,16 +43,24 @@ See https://help.seequent.com/Geo/2.1/en-GB/Content/drillholes/desurveying.htm
 * `:point`    - geospatial data with points
 * `:none`     - data frame with usual columns
 """
-function desurvey(collar, survey, intervals;
-                  step=:arc, indip=:auto, outdip=:down,
-                  len=nothing, geom=:cylinder, radius=1.0)
+function desurvey(
+  collar,
+  survey,
+  intervals;
+  step=:arc,
+  indip=:auto,
+  outdip=:down,
+  len=nothing,
+  geom=:cylinder,
+  radius=1.0
+)
   # sanity checks
-  @assert step ∈ [:arc,:tan] "invalid step method"
-  @assert indip ∈ [:auto,:down,:up] "invalid input dip convention"
-  @assert outdip ∈ [:down,:up] "invalid output dip convention"
+  @assert step ∈ [:arc, :tan] "invalid step method"
+  @assert indip ∈ [:auto, :down, :up] "invalid input dip convention"
+  @assert outdip ∈ [:down, :up] "invalid output dip convention"
 
   # pre-process input tables
-   ctable, stable, itables = preprocess(collar, survey, intervals, indip)
+  ctable, stable, itables = preprocess(collar, survey, intervals, indip)
 
   # combine all intervals into single table and
   # assign values to sub-intervals when possible
@@ -77,30 +85,20 @@ function preprocess(collar, survey, intervals, indip)
   # select relevant columns of collar table and
   # standardize column names to HOLEID, X, Y, Z
   ctable = let
-    f1 = Rename(collar.holeid => :HOLEID,
-                collar.x      => :X,
-                collar.y      => :Y,
-                collar.z      => :Z)
+    f1 = Rename(collar.holeid => :HOLEID, collar.x => :X, collar.y => :Y, collar.z => :Z)
     f2 = Select(:HOLEID, :X, :Y, :Z)
     f3 = DropMissing()
-    f4 = Coerce(:X => Continuous,
-                :Y => Continuous,
-                :Z => Continuous)
+    f4 = Coerce(:X => Continuous, :Y => Continuous, :Z => Continuous)
     DataFrame(collar.table) |> (f1 → f2 → f3 → f4)
   end
 
   # select relevant columns of survey table and
   # standardize column names to HOLEID, AT, AZM, DIP
   stable = let
-    f1 = Rename(survey.holeid => :HOLEID,
-                survey.at     => :AT,
-                survey.azm    => :AZM,
-                survey.dip    => :DIP)
+    f1 = Rename(survey.holeid => :HOLEID, survey.at => :AT, survey.azm => :AZM, survey.dip => :DIP)
     f2 = Select(:HOLEID, :AT, :AZM, :DIP)
     f3 = DropMissing()
-    f4 = Coerce(:AT  => Continuous,
-                :AZM => Continuous,
-                :DIP => Continuous)
+    f4 = Coerce(:AT => Continuous, :AZM => Continuous, :DIP => Continuous)
     DataFrame(survey.table) |> (f1 → f2 → f3 → f4)
   end
 
@@ -121,10 +119,10 @@ function preprocess(collar, survey, intervals, indip)
 
   # select all columns of interval tables and
   # standardize column names to HOLEID, FROM, TO
-  itables = [rename(DataFrame(interval.table),
-                    interval.holeid => :HOLEID,
-                    interval.from   => :FROM,
-                    interval.to     => :TO) for interval in intervals]
+  itables = [
+    rename(DataFrame(interval.table), interval.holeid => :HOLEID, interval.from => :FROM, interval.to => :TO) for
+    interval in intervals
+  ]
 
   ctable, stable, itables
 end
@@ -139,7 +137,7 @@ function postprocess(table, outdip, geom, radius)
   samples = view(table, table.SOURCE .== :INTERVAL, Not(:SOURCE))
 
   # reorder columns for clarity
-  cols  = [:HOLEID,:FROM,:TO,:AT,:AZM,:DIP,:X,:Y,:Z]
+  cols = [:HOLEID, :FROM, :TO, :AT, :AZM, :DIP, :X, :Y, :Z]
   holes = select(samples, cols, Not(cols))
 
   # return data frame if no geometry is specified
@@ -162,18 +160,18 @@ function postprocess(table, outdip, geom, radius)
     # geometry elements along hole
     elems = if geom == :cylinder
       # all cylinders, except first and last
-      cylinders = map(2:length(coords)-1) do i
+      cylinders = map(2:(length(coords) - 1)) do i
         # points at cylinder planes
-        point₁  = (coords[i]   .+ coords[i-1]) ./ 2
-        point₂  = (coords[i+1] .+ coords[i]  ) ./ 2
+        point₁ = (coords[i] .+ coords[i - 1]) ./ 2
+        point₂ = (coords[i + 1] .+ coords[i]) ./ 2
 
         # normals to cylinder planes
-        normal₁ = coords[i]   .- coords[i-1]
-        normal₂ = coords[i+1] .- coords[i]
+        normal₁ = coords[i] .- coords[i - 1]
+        normal₂ = coords[i + 1] .- coords[i]
 
         # bottom and top planes
-        plane₁  = Plane(point₁, normal₁)
-        plane₂  = Plane(point₂, normal₂)
+        plane₁ = Plane(point₁, normal₁)
+        plane₂ = Plane(point₂, normal₂)
 
         # cylinder with given radius and planes
         Cylinder(radius, plane₁, plane₂)
@@ -211,7 +209,7 @@ end
 
 function interleave(itables)
   # stack tables in order to see all variables
-  table = vcat(itables..., cols = :union)
+  table = vcat(itables..., cols=:union)
 
   # intialize rows of result table
   rows = []
@@ -227,19 +225,19 @@ function interleave(itables)
     # loop over all sub-intervals
     for i in 2:length(depths)
       # current sub-interval
-      from, to = depths[i-1], depths[i]
+      from, to = depths[i - 1], depths[i]
 
       # intialize row with metadata
       row = Dict{Symbol,Any}(:HOLEID => holeid, :FROM => from, :TO => to)
 
       # find all intervals which contain sub-interval
-      samples = filter(I -> I.FROM ≤ from && to ≤ I.TO, hole, view = true)
+      samples = filter(I -> I.FROM ≤ from && to ≤ I.TO, hole, view=true)
 
       # fill values when that is possible assuming homogeneity
-      props = select(samples, Not([:HOLEID,:FROM,:TO]))
+      props = select(samples, Not([:HOLEID, :FROM, :TO]))
       for name in propertynames(props)
-        ind = findfirst(!ismissing, props[!,name])
-        val = isnothing(ind) ? missing : props[ind,name]
+        ind = findfirst(!ismissing, props[!, name])
+        val = isnothing(ind) ? missing : props[ind, name]
         row[name] = val
       end
 
@@ -257,13 +255,13 @@ function position(itable, stable)
   interv = copy(itable)
 
   # depth equals to middle of interval
-  interv[!,:AT] = (interv.FROM .+ interv.TO) ./ 2
+  interv[!, :AT] = (interv.FROM .+ interv.TO) ./ 2
 
   # register source of data for interval table
-  interv[!,:SOURCE] .= :INTERVAL
+  interv[!, :SOURCE] .= :INTERVAL
 
   # join attributes and trajectory
-  table = outerjoin(interv, stable, on = [:HOLEID,:AT])
+  table = outerjoin(interv, stable, on=[:HOLEID, :AT])
 
   # register source of data for survey table
   table.SOURCE = coalesce.(table.SOURCE, :SURVEY)
@@ -289,17 +287,17 @@ function position(itable, stable)
   # with AT (degenerate interval)
   for row in eachrow(attrib)
     ismissing(row.FROM) && (row.FROM = row.AT)
-    ismissing(row.TO)   && (row.TO   = row.AT)
+    ismissing(row.TO) && (row.TO = row.AT)
   end
 
   # drop missing type from complete columns
-  dropmissing!(attrib, [:FROM,:TO,:AZM,:DIP])
+  dropmissing!(attrib, [:FROM, :TO, :AZM, :DIP])
 end
 
 # interpolate ycol from xcol assuming table is sorted
 function interpolate!(table, xcol, ycol)
-  xs = table[!,xcol]
-  ys = table[!,ycol]
+  xs = table[!, xcol]
+  ys = table[!, ycol]
   is = findall(!ismissing, ys)
   if !isempty(is)
     itp = LinearItp(xs[is], ys[is], extrapolation_bc=LinearBC())
@@ -312,10 +310,10 @@ end
 function locate(attrib, ctable, method)
   # collar coordinates are at depth 0
   ctableat = copy(ctable)
-  ctableat[!,:AT] .= 0
+  ctableat[!, :AT] .= 0
 
   # join tables on hole id and depth
-  table = leftjoin(attrib, ctableat, on = [:HOLEID,:AT])
+  table = leftjoin(attrib, ctableat, on=[:HOLEID, :AT])
 
   # choose a step method
   step = method == :arc ? arcstep : tanstep
@@ -336,18 +334,18 @@ function locate(attrib, ctable, method)
 
     # use step method to calculate coordinates on survey
     at, azm, dip = survey.AT, survey.AZM, survey.DIP
-    x,  y,   z   = survey.X,  survey.Y,   survey.Z
+    x, y, z = survey.X, survey.Y, survey.Z
     @inbounds for i in 2:size(survey, 1)
       # compute increments dx, dy, dz
-      az1, dp1   = azm[i-1], dip[i-1]
-      az2, dp2   = azm[i],   dip[i]
-      d12        = at[i] - at[i-1]
+      az1, dp1 = azm[i - 1], dip[i - 1]
+      az2, dp2 = azm[i], dip[i]
+      d12 = at[i] - at[i - 1]
       dx, dy, dz = step(az1, dp1, az2, dp2, d12)
 
       # add increments to x, y, z
-      x[i] = x[i-1] + dx
-      y[i] = y[i-1] + dy
-      z[i] = z[i-1] + dz
+      x[i] = x[i - 1] + dx
+      y[i] = y[i - 1] + dy
+      z[i] = z[i - 1] + dz
     end
 
     # interpolate coordinates linearly on intervals
@@ -362,7 +360,7 @@ function locate(attrib, ctable, method)
   result = reduce(vcat, drillholes)
 
   # drop missing type from complete columns
-  dropmissing!(result, [:X,:Y,:Z])
+  dropmissing!(result, [:X, :Y, :Z])
 end
 
 # -------------
@@ -371,20 +369,20 @@ end
 
 # assumes positive dip points upwards
 function arcstep(az1, dp1, az2, dp2, d12)
-  dp1, dp2 = (90.0-dp1), (90.0-dp2)
-  DL = acos(cosd(dp2-dp1)-sind(dp1)*sind(dp2)*(1-cosd(az2-az1)))
-  RF = DL ≈ 0.0 ? 1.0 : 2*tan(DL/2)/DL
-  dx = 0.5*d12*(sind(dp1)*sind(az1)+sind(dp2)*sind(az2))*RF
-  dy = 0.5*d12*(sind(dp1)*cosd(az1)+sind(dp2)*cosd(az2))*RF
-  dz = 0.5*d12*(cosd(dp1)+cosd(dp2))*RF
+  dp1, dp2 = (90.0 - dp1), (90.0 - dp2)
+  DL = acos(cosd(dp2 - dp1) - sind(dp1) * sind(dp2) * (1 - cosd(az2 - az1)))
+  RF = DL ≈ 0.0 ? 1.0 : 2 * tan(DL / 2) / DL
+  dx = 0.5 * d12 * (sind(dp1) * sind(az1) + sind(dp2) * sind(az2)) * RF
+  dy = 0.5 * d12 * (sind(dp1) * cosd(az1) + sind(dp2) * cosd(az2)) * RF
+  dz = 0.5 * d12 * (cosd(dp1) + cosd(dp2)) * RF
   dx, dy, dz
 end
 
 # assumes positive dip points upwards
 function tanstep(az1, dp1, az2, dp2, d12)
-  dp1 = (90.0-dp1)
-  dx  = d12*sind(dp1)*sind(az1)
-  dy  = d12*sind(dp1)*cosd(az1)
-  dz  = d12*cosd(dp1)
+  dp1 = (90.0 - dp1)
+  dx = d12 * sind(dp1) * sind(az1)
+  dy = d12 * sind(dp1) * cosd(az1)
+  dz = d12 * cosd(dp1)
   dx, dy, dz
 end

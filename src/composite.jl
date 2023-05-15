@@ -28,16 +28,16 @@ function composite(itable, len)
 
     # split original intervals into sub-intervals
     # that fit perfectly within composite intervals
-    j  = 1
+    j = 1
     id = Int[]
     df = similar(dh, 0)
-    for i in 1:N-1
+    for i in 1:(N - 1)
       # current interface
-      AT = FROM[begin] + i*len
+      AT = FROM[begin] + i * len
 
       # copy all intervals before interface
       while TO[j] < AT
-        push!(df, dh[j,:])
+        push!(df, dh[j, :])
         push!(id, i)
         j += 1
       end
@@ -45,13 +45,13 @@ function composite(itable, len)
       # make sure this is not a gap
       if FROM[j] < AT
         # first sub-interval at interface
-        push!(df, dh[j,:])
+        push!(df, dh[j, :])
         push!(id, i)
         df.TO[end] = AT
 
         # second sub-interval at interface
-        push!(df, dh[j,:])
-        push!(id, i+1)
+        push!(df, dh[j, :])
+        push!(id, i + 1)
         df.FROM[end] = AT
       end
     end
@@ -59,17 +59,17 @@ function composite(itable, len)
     # last composite interval (i = N)
     while j < size(dh, 1)
       j += 1
-      push!(df, dh[j,:])
+      push!(df, dh[j, :])
       push!(id, N)
     end
 
     # composite id and interval lengths
-    df[!,:ID_]  = id
-    df[!,:LEN_] = df.TO - df.FROM
+    df[!, :ID_] = id
+    df[!, :LEN_] = df.TO - df.FROM
 
     # variables of interest
     allcols = propertynames(df)
-    discard = [:FROM,:TO,:ID_,:LEN_]
+    discard = [:FROM, :TO, :ID_, :LEN_]
     allvars = setdiff(allcols, discard)
 
     # perform aggregation
@@ -78,12 +78,12 @@ function composite(itable, len)
 
       row[:SOURCE] = :INTERVAL
       row[:HOLEID] = dh.HOLEID[begin]
-      row[:FROM]   = d.FROM[begin]
-      row[:TO]     = d.TO[end]
+      row[:FROM] = d.FROM[begin]
+      row[:TO] = d.TO[end]
 
       for var in allvars
-        x = d[!,var]
-        l = d[!,:LEN_]
+        x = d[!, var]
+        l = d[!, :LEN_]
         x̄ = aggregate(x, l)
         row[var] = x̄
       end
@@ -102,7 +102,7 @@ function aggregate(x, l)
   T = x |> scitype_union |> nonmissingtype
 
   # discard missing
-  m  = @. !ismissing(x)
+  m = @. !ismissing(x)
   xm = x[m]
   lm = l[m]
 
@@ -111,4 +111,4 @@ function aggregate(x, l)
 end
 
 _aggregate(::Type{<:Continuous}, x, l) = (x ⋅ l) / sum(l)
-_aggregate(::Type{<:Any},        x, l) = x[argmax(l)]
+_aggregate(::Type{<:Any}, x, l) = x[argmax(l)]

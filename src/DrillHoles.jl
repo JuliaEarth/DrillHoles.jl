@@ -14,7 +14,7 @@ import Tables
 import Interpolations
 
 const LinearItp = Interpolations.linear_interpolation
-const LinearBC  = Interpolations.Line
+const LinearBC = Interpolations.Line
 
 include("tables.jl")
 include("desurvey.jl")

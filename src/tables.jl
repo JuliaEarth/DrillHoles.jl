@@ -44,7 +44,7 @@ Tables.columnnames(t::MiningTable) = Tables.columnnames(selection(t))
 # -----------
 
 Base.show(io::IO, mime::MIME"text/plain", t::MiningTable) = _show(io, mime, t)
-Base.show(io::IO, mime::MIME"text/html",  t::MiningTable) = _show(io, mime, t)
+Base.show(io::IO, mime::MIME"text/html", t::MiningTable) = _show(io, mime, t)
 _show(io, mime, t) = show(io, mime, selection(t))
 
 # ----------------
@@ -64,17 +64,13 @@ struct Survey{𝒯} <: MiningTable
   dip::Symbol
 
   function Survey{𝒯}(table, holeid, at, azm, dip) where {𝒯}
-    assertspec(table, [holeid,at,azm,dip])
-    assertnum(table, [at,azm,dip])
+    assertspec(table, [holeid, at, azm, dip])
+    assertnum(table, [at, azm, dip])
     new(table, holeid, at, azm, dip)
   end
 end
 
-Survey(table;
-       holeid = defaultid(table),
-       at     = defaultat(table),
-       azm    = defaultazm(table),
-       dip    = defaultdip(table)) =
+Survey(table; holeid=defaultid(table), at=defaultat(table), azm=defaultazm(table), dip=defaultdip(table)) =
   Survey{typeof(table)}(table, holeid, at, azm, dip)
 
 required(table::Survey) = (table.holeid, table.at, table.azm, table.dip)
@@ -92,17 +88,13 @@ struct Collar{𝒯} <: MiningTable
   z::Symbol
 
   function Collar{𝒯}(table, holeid, x, y, z) where {𝒯}
-    assertspec(table, [holeid,x,y,z])
-    assertnum(table, [x,y,z])
+    assertspec(table, [holeid, x, y, z])
+    assertnum(table, [x, y, z])
     new(table, holeid, x, y, z)
   end
 end
 
-Collar(table;
-       holeid = defaultid(table),
-       x      = defaultx(table),
-       y      = defaulty(table),
-       z      = defaultz(table)) =
+Collar(table; holeid=defaultid(table), x=defaultx(table), y=defaulty(table), z=defaultz(table)) =
   Collar{typeof(table)}(table, holeid, x, y, z)
 
 required(table::Collar) = (table.holeid, table.x, table.y, table.z)
@@ -119,16 +111,13 @@ struct Interval{𝒯} <: MiningTable
   to::Symbol
 
   function Interval{𝒯}(table, holeid, from, to) where {𝒯}
-    assertspec(table, [holeid,from,to])
-    assertnum(table, [from,to])
+    assertspec(table, [holeid, from, to])
+    assertnum(table, [from, to])
     new(table, holeid, from, to)
   end
 end
 
-Interval(table;
-         holeid = defaultid(table),
-         from   = defaultfrom(table),
-         to     = defaultto(table)) =
+Interval(table; holeid=defaultid(table), from=defaultfrom(table), to=defaultto(table)) =
   Interval{typeof(table)}(table, holeid, from, to)
 
 required(table::Interval) = (table.holeid, table.from, table.to)
@@ -147,7 +136,7 @@ end
 # helper function to find default column names
 # from a list of candidate names
 function default(table, names)
-  cols  = Tables.columns(table)
+  cols = Tables.columns(table)
   avail = Tables.columnnames(cols)
   for name in names
     if name ∈ avail
@@ -156,30 +145,28 @@ function default(table, names)
   end
   ns = join(names, ", ", " and ")
   av = join(avail, ", ", " and ")
-  throw(ArgumentError(
-    """\n
-    None of the names $ns was found in table.
-    Please specify name explicitly. Available names are $av.
-    """
-  ))
+  throw(ArgumentError("""\n
+                      None of the names $ns was found in table.
+                      Please specify name explicitly. Available names are $av.
+                      """))
 end
 
-defaultid(table)   = default(table, [:HOLEID,:BHID,:holeid,:bhid])
-defaultx(table)    = default(table, [:X,:XCOLLAR,:x,:xcollar])
-defaulty(table)    = default(table, [:Y,:YCOLLAR,:y,:ycollar])
-defaultz(table)    = default(table, [:Z,:ZCOLLAR,:z,:zcollar])
-defaultazm(table)  = default(table, [:AZM,:BRG,:azm,:brg])
-defaultdip(table)  = default(table, [:DIP,:dip])
-defaultat(table)   = default(table, [:AT,:at])
-defaultfrom(table) = default(table, [:FROM,:from])
-defaultto(table)   = default(table, [:TO,:to])
+defaultid(table) = default(table, [:HOLEID, :BHID, :holeid, :bhid])
+defaultx(table) = default(table, [:X, :XCOLLAR, :x, :xcollar])
+defaulty(table) = default(table, [:Y, :YCOLLAR, :y, :ycollar])
+defaultz(table) = default(table, [:Z, :ZCOLLAR, :z, :zcollar])
+defaultazm(table) = default(table, [:AZM, :BRG, :azm, :brg])
+defaultdip(table) = default(table, [:DIP, :dip])
+defaultat(table) = default(table, [:AT, :at])
+defaultfrom(table) = default(table, [:FROM, :from])
+defaultto(table) = default(table, [:TO, :to])
 
 # -----------
 # ASSERTIONS
 # -----------
 
 function assertspec(table, names)
-  cols  = Tables.columns(table)
+  cols = Tables.columns(table)
   avail = Tables.columnnames(cols)
   if !(names ⊆ avail)
     wrong = join(setdiff(names, avail), ", ", " and ")
@@ -195,14 +182,12 @@ function assertnum(table, names)
     S = elscitype(x)
     V = Union{Continuous,Count,Missing}
     if !(S <: V)
-      throw(ArgumentError(
-        """\n
-        Column $name should contain numerical values,
-        but it currently has values of type $T. Please
-        fix the type before trying to load the data into
-        the mining table.
-        """
-      ))
+      throw(ArgumentError("""\n
+                          Column $name should contain numerical values,
+                          but it currently has values of type $T. Please
+                          fix the type before trying to load the data into
+                          the mining table.
+                          """))
     end
   end
 end

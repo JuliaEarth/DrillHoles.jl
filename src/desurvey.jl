@@ -174,21 +174,21 @@ function postprocess(table, outdip, geom, radius)
         plane₂ = Plane(point₂, normal₂)
 
         # cylinder with given radius and planes
-        Cylinder(radius, plane₁, plane₂)
+        Cylinder(plane₁, plane₂, radius)
       end
 
       # add first cylinder
       fpoint = Point(first(coords))
       fplane = bottom(first(cylinders))
-      fdelta = fpoint - origin(fplane)
-      fcylin = Cylinder(radius, Plane(fpoint + fdelta, -fdelta), fplane)
+      fdelta = fpoint - fplane(0, 0)
+      fcylin = Cylinder(Plane(fpoint + fdelta, -fdelta), fplane, radius)
       pushfirst!(cylinders, fcylin)
 
       # add last cylinder
       lpoint = Point(last(coords))
       lplane = top(last(cylinders))
-      ldelta = lpoint - origin(lplane)
-      lcylin = Cylinder(radius, lplane, Plane(lpoint + ldelta, ldelta))
+      ldelta = lpoint - lplane(0, 0)
+      lcylin = Cylinder(lplane, Plane(lpoint + ldelta, ldelta), radius)
       push!(cylinders, lcylin)
 
       # return cylinders
@@ -204,7 +204,7 @@ function postprocess(table, outdip, geom, radius)
   etable = reduce(vcat, first.(result))
   egeoms = reduce(vcat, last.(result))
 
-  meshdata(Collection(egeoms), etable=etable)
+  meshdata(GeometrySet(egeoms), etable=etable)
 end
 
 function interleave(itables)

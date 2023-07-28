@@ -1,7 +1,7 @@
 name = "DrillHoles"
 uuid = "9d36f3b5-8124-4f7e-bcda-df733105c718"
 authors = ["Rafael Caixeta and contributors"]
-version = "0.4.10"
+version = "1.0.0"
 
 [deps]
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"

@@ -144,7 +144,7 @@ function postprocess(table, outdip, geom, radius)
   geom == :none && return holes
 
   # initialize result
-  result = []
+  geotables = []
 
   # process each drillhole separately
   for dh in groupby(holes, :HOLEID)
@@ -157,54 +157,22 @@ function postprocess(table, outdip, geom, radius)
     # coordinates of centroids
     coords = collect(zip(dh.X, dh.Y, dh.Z))
 
+    # centroids as points
+    points = Point.(coords)
+
     # geometry elements along hole
-    elems = if geom == :cylinder
-      # all cylinders, except first and last
-      cylinders = map(2:(length(coords) - 1)) do i
-        # points at cylinder planes
-        point₁ = (coords[i] .+ coords[i - 1]) ./ 2
-        point₂ = (coords[i + 1] .+ coords[i]) ./ 2
-
-        # normals to cylinder planes
-        normal₁ = coords[i] .- coords[i - 1]
-        normal₂ = coords[i + 1] .- coords[i]
-
-        # bottom and top planes
-        plane₁ = Plane(point₁, normal₁)
-        plane₂ = Plane(point₂, normal₂)
-
-        # cylinder with given radius and planes
-        Cylinder(plane₁, plane₂, radius)
-      end
-
-      # add first cylinder
-      fpoint = Point(first(coords))
-      fplane = bottom(first(cylinders))
-      fdelta = fpoint - fplane(0, 0)
-      fcylin = Cylinder(Plane(fpoint + fdelta, -fdelta), fplane, radius)
-      pushfirst!(cylinders, fcylin)
-
-      # add last cylinder
-      lpoint = Point(last(coords))
-      lplane = top(last(cylinders))
-      ldelta = lpoint - lplane(0, 0)
-      lcylin = Cylinder(lplane, Plane(lpoint + ldelta, ldelta), radius)
-      push!(cylinders, lcylin)
-
-      # return cylinders
-      cylinders
+    domain = if geom == :cylinder
+      CylindricalTrajectory(points, radius)
     else
-      # return points
-      Point.(coords)
+      PointSet(points)
     end
 
-    push!(result, (values, elems))
+    geotable = meshdata(domain, etable=values)
+
+    push!(geotables, geotable)
   end
 
-  etable = reduce(vcat, first.(result))
-  egeoms = reduce(vcat, last.(result))
-
-  meshdata(GeometrySet(egeoms), etable=etable)
+  reduce(vcat, geotables)
 end
 
 function interleave(itables)

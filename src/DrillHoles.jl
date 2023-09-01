@@ -5,6 +5,7 @@
 module DrillHoles
 
 using Meshes
+using GeoTables
 using DataFrames
 using ScientificTypes
 using TableTransforms

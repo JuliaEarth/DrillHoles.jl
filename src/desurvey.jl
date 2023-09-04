@@ -167,7 +167,7 @@ function postprocess(table, outdip, geom, radius)
       PointSet(points)
     end
 
-    push!(geotables, geotable(domain, etable=values))
+    push!(geotables, georef(values, domain))
   end
 
   reduce(vcat, geotables)

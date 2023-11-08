@@ -7,13 +7,14 @@ module DrillHoles
 using Meshes
 using GeoTables
 using DataFrames
-using ScientificTypes
+using DataScienceTraits
 using TableTransforms
 using LinearAlgebra
 
 import Tables
 import Interpolations
 
+const Continuous = DataScienceTraits.Continuous
 const LinearItp = Interpolations.linear_interpolation
 const LinearBC = Interpolations.Line
 

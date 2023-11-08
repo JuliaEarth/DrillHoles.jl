@@ -65,8 +65,8 @@ struct Survey{𝒯} <: MiningTable
 
   function Survey{𝒯}(table, holeid, at, azm, dip) where {𝒯}
     assertspec(table, [holeid, at, azm, dip])
-    assertnum(table, [at, azm, dip])
-    new(table, holeid, at, azm, dip)
+    ctable = coercecont(table, [at, azm, dip])
+    new(ctable, holeid, at, azm, dip)
   end
 end
 
@@ -89,8 +89,8 @@ struct Collar{𝒯} <: MiningTable
 
   function Collar{𝒯}(table, holeid, x, y, z) where {𝒯}
     assertspec(table, [holeid, x, y, z])
-    assertnum(table, [x, y, z])
-    new(table, holeid, x, y, z)
+    ctable = coercecont(table, [x, y, z])
+    new(ctable, holeid, x, y, z)
   end
 end
 
@@ -112,8 +112,8 @@ struct Interval{𝒯} <: MiningTable
 
   function Interval{𝒯}(table, holeid, from, to) where {𝒯}
     assertspec(table, [holeid, from, to])
-    assertnum(table, [from, to])
-    new(table, holeid, from, to)
+    ctable = coercecont(table, [from, to])
+    new(ctable, holeid, from, to)
   end
 end
 
@@ -174,20 +174,16 @@ function assertspec(table, names)
   end
 end
 
-function assertnum(table, names)
+function coercecont(table, snames)
   cols = Tables.columns(table)
-  for name in names
+  names = Tables.columnnames(cols)
+  newcols = map(names) do name
     x = Tables.getcolumn(cols, name)
-    T = eltype(x)
-    S = elscitype(x)
-    V = Union{Continuous,Count,Missing}
-    if !(S <: V)
-      throw(ArgumentError("""\n
-                          Column $name should contain numerical values,
-                          but it currently has values of type $T. Please
-                          fix the type before trying to load the data into
-                          the mining table.
-                          """))
+    if name in snames
+      DataScienceTraits.coerce(Continuous, x)
+    else
+      x
     end
   end
+  (; zip(names, newcols)...) |> Tables.materializer(table)
 end

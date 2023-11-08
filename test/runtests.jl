@@ -1,6 +1,7 @@
 using DrillHoles
 using DataFrames
 using Meshes
+using CSV
 using Test
 
 @testset "DrillHoles.jl" begin

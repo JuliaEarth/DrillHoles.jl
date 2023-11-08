@@ -65,8 +65,8 @@ struct Survey{𝒯} <: MiningTable
 
   function Survey{𝒯}(table, holeid, at, azm, dip) where {𝒯}
     assertspec(table, [holeid, at, azm, dip])
-    ctable = coercecont(table, [at, azm, dip])
-    new(ctable, holeid, at, azm, dip)
+    assertreal(table, [at, azm, dip])
+    new(table, holeid, at, azm, dip)
   end
 end
 
@@ -89,8 +89,8 @@ struct Collar{𝒯} <: MiningTable
 
   function Collar{𝒯}(table, holeid, x, y, z) where {𝒯}
     assertspec(table, [holeid, x, y, z])
-    ctable = coercecont(table, [x, y, z])
-    new(ctable, holeid, x, y, z)
+    assertreal(table, [x, y, z])
+    new(table, holeid, x, y, z)
   end
 end
 
@@ -112,8 +112,8 @@ struct Interval{𝒯} <: MiningTable
 
   function Interval{𝒯}(table, holeid, from, to) where {𝒯}
     assertspec(table, [holeid, from, to])
-    ctable = coercecont(table, [from, to])
-    new(ctable, holeid, from, to)
+    assertreal(table, [from, to])
+    new(table, holeid, from, to)
   end
 end
 
@@ -174,16 +174,18 @@ function assertspec(table, names)
   end
 end
 
-function coercecont(table, snames)
+function assertreal(table, names)
   cols = Tables.columns(table)
-  names = Tables.columnnames(cols)
-  newcols = map(names) do name
+  for name in names
     x = Tables.getcolumn(cols, name)
-    if name in snames
-      DataScienceTraits.coerce(Continuous, x)
-    else
-      x
+    T = eltype(x)
+    if !(T <: Real)
+      throw(ArgumentError("""\n
+      Column $name should contain real values,
+      but it currently has values of type $T.
+      Please fix the type before trying to load
+      the data into the mining table.
+      """))
     end
   end
-  (; zip(names, newcols)...) |> Tables.materializer(table)
 end

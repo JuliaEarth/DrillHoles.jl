@@ -179,7 +179,7 @@ function assertreal(table, names)
   for name in names
     x = Tables.getcolumn(cols, name)
     T = eltype(x)
-    if !(T <: Real)
+    if !(T <: Union{Real,Missing})
       throw(ArgumentError("""\n
       Column $name should contain real values,
       but it currently has values of type $T.

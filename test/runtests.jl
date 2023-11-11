@@ -86,9 +86,9 @@ using Test
       atol=1e-5
     )
 
-    # return cylinder geometries by default
+    # point geometries by default
     dh3 = desurvey(collar, survey, [assays, lithos])
-    @test eltype(dh3.geometry) <: Cylinder
+    @test eltype(dh3.geometry) <: Point
 
     # guess column names
     collar = Collar(DataFrame(holeid=1:2, XCOLLAR=1:2, Y=1:2, z=1:2))

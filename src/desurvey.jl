@@ -5,7 +5,7 @@
 """
     desurvey(collar, survey, intervals;
              step=:arc, indip=:auto, outdip=:down,
-             len=nothing, geom=:cylinder, radius=1.0)
+             len=nothing, geom=:point, radius=1.0)
 
 Desurvey drill holes based on `collar`, `survey` and `intervals` tables.
 Optionally, specify a `step` method, an input dip angle convention `indip`
@@ -51,7 +51,7 @@ function desurvey(
   indip=:auto,
   outdip=:down,
   len=nothing,
-  geom=:cylinder,
+  geom=:point,
   radius=1.0
 )
   # sanity checks

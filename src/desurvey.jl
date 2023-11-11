@@ -43,17 +43,7 @@ See https://help.seequent.com/Geo/2.1/en-GB/Content/drillholes/desurveying.htm
 * `:point`    - geospatial data with points
 * `:none`     - data frame with usual columns
 """
-function desurvey(
-  collar,
-  survey,
-  intervals;
-  step=:arc,
-  indip=:auto,
-  outdip=:down,
-  len=nothing,
-  geom=:point,
-  radius=1.0
-)
+function desurvey(collar, survey, intervals; step=:arc, indip=:auto, outdip=:down, len=nothing, geom=:point, radius=1.0)
   # sanity checks
   @assert step ∈ [:arc, :tan] "invalid step method"
   @assert indip ∈ [:auto, :down, :up] "invalid input dip convention"

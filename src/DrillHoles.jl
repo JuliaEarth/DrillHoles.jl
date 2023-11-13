@@ -15,6 +15,7 @@ import Tables
 import Interpolations
 
 const Continuous = DataScienceTraits.Continuous
+const Categorical = DataScienceTraits.Categorical
 const LinearItp = Interpolations.linear_interpolation
 const LinearBC = Interpolations.Line
 

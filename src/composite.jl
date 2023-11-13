@@ -98,17 +98,14 @@ end
 
 # helper function to aggregate vectors
 function aggregate(x, l)
-  # scientific type
-  T = x |> scitype_union |> nonmissingtype
-
   # discard missing
   m = @. !ismissing(x)
   xm = x[m]
   lm = l[m]
 
   # dipatch on scientific type
-  isempty(xm) ? missing : _aggregate(T, xm, lm)
+  isempty(xm) ? missing : _aggregate(elscitype(x), xm, lm)
 end
 
-_aggregate(::Type{<:Continuous}, x, l) = (x ⋅ l) / sum(l)
-_aggregate(::Type{<:Any}, x, l) = x[argmax(l)]
+_aggregate(::Type{Continuous}, x, l) = (x ⋅ l) / sum(l)
+_aggregate(::Type{Categorical}, x, l) = x[argmax(l)]

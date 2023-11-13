@@ -103,8 +103,12 @@ function aggregate(x, l)
   xm = x[m]
   lm = l[m]
 
-  # dipatch on scientific type
-  isempty(xm) ? missing : _aggregate(elscitype(x), xm, lm)
+  # aggregate if possible
+  if isempty(lm) || iszero(sum(lm))
+    missing
+  else
+    _aggregate(elscitype(x), xm, lm)
+  end
 end
 
 _aggregate(::Type{Continuous}, x, l) = (x ⋅ l) / sum(l)

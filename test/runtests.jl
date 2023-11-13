@@ -120,9 +120,8 @@ using Test
   @test DataFrame(Tables.columns(collar)) == result
   @test DataFrame(collar) == result
 
-  survey = Survey(
-    DataFrame(HOLEID=[1, 1, 2, 2], at=[0, 5, 0, 5], BRG=[0, 1, 20, 21], DIP=[89, 88, 77, 76], BAR=[1, 2, 3, 4])
-  )
+  survey =
+    Survey(DataFrame(HOLEID=[1, 1, 2, 2], at=[0, 5, 0, 5], BRG=[0, 1, 20, 21], DIP=[89, 88, 77, 76], BAR=[1, 2, 3, 4]))
   @test Tables.istable(survey)
   @test Tables.rowaccess(survey) == true
   @test Tables.columnaccess(survey) == true

@@ -126,7 +126,10 @@ function postprocess(table, outdip, geom, radius)
   # discard auxiliary SOURCE information
   samples = view(table, table.SOURCE .== :INTERVAL, Not(:SOURCE))
 
-  # reorder columns for clarity
+  # sort columns for clarity
+  samples = select(samples, sort(names(samples)))
+
+  # place actual variables at the end
   cols = [:HOLEID, :FROM, :TO, :AT, :AZM, :DIP, :X, :Y, :Z]
   holes = select(samples, cols, Not(cols))
 

@@ -127,6 +127,8 @@ using Test
   @test assays.holeid == :HoleId
   @test assays.from == :From
   @test assays.to == :To
+  # invalid column name specification
+  @test_throws ArgumentError Interval(idf, holeid=:HoleId, from="From", to=nothing)
 
   # Tables.jl interface
   collar = Collar(DataFrame(holeid=1:2, XCOLLAR=1:2, Y=1:2, z=1:2, w=1:2))

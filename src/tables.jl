@@ -196,4 +196,5 @@ end
 
 _asname(name::Symbol) = name
 _asname(name::AbstractString) = Symbol(name)
+_asname(::Any) = throw(ArgumentError("invalid column name specification"))
 _asname(names...) = map(_asname, names)

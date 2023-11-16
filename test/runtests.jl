@@ -109,6 +109,25 @@ using Test
   dh = desurvey(collar, survey, [assays], geom=:none)
   @test propertynames(dh) == [:HOLEID, :FROM, :TO, :AT, :AZM, :DIP, :X, :Y, :Z, :A]
 
+  # custom column names
+  cdf = DataFrame(HoleId=1:2, XCollar=1:2, YCollar=1:2, ZCollar=1:2)
+  collar = Collar(cdf, holeid=:HoleId, x="XCollar", y=:YCollar, z="ZCollar")
+  @test collar.holeid == :HoleId
+  @test collar.x == :XCollar
+  @test collar.y == :YCollar
+  @test collar.z == :ZCollar
+  sdf = DataFrame(HoleId=[1, 1, 2, 2], At=[0, 5, 0, 5], Azimuth=[0, 1, 20, 21], Dip=[89, 88, 77, 76])
+  survey = Survey(sdf, holeid=:HoleId, at="At", azm=:Azimuth, dip="Dip")
+  @test survey.holeid == :HoleId
+  @test survey.at == :At
+  @test survey.azm == :Azimuth
+  @test survey.dip == :Dip
+  idf = DataFrame(HoleId=[1, 1, 2], From=[1, 3.5, 0], To=[3.5, 8, 7])
+  assays = Interval(idf, holeid=:HoleId, from="From", to=:To)
+  @test assays.holeid == :HoleId
+  @test assays.from == :From
+  @test assays.to == :To
+
   # Tables.jl interface
   collar = Collar(DataFrame(holeid=1:2, XCOLLAR=1:2, Y=1:2, z=1:2, w=1:2))
   @test Tables.istable(collar)
@@ -140,4 +159,5 @@ using Test
   @test DataFrame(Tables.rows(assays)) == result
   @test DataFrame(Tables.columns(assays)) == result
   @test DataFrame(assays) == result
+
 end

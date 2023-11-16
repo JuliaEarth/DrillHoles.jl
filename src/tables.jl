@@ -71,7 +71,7 @@ struct Survey{𝒯} <: MiningTable
 end
 
 Survey(table; holeid=defaultid(table), at=defaultat(table), azm=defaultazm(table), dip=defaultdip(table)) =
-  Survey{typeof(table)}(table, holeid, at, azm, dip)
+  Survey{typeof(table)}(table, Symbol(holeid), Symbol(at), Symbol(azm), Symbol(dip))
 
 required(table::Survey) = (table.holeid, table.at, table.azm, table.dip)
 
@@ -95,7 +95,7 @@ struct Collar{𝒯} <: MiningTable
 end
 
 Collar(table; holeid=defaultid(table), x=defaultx(table), y=defaulty(table), z=defaultz(table)) =
-  Collar{typeof(table)}(table, holeid, x, y, z)
+  Collar{typeof(table)}(table, Symbol(holeid), Symbol(x), Symbol(y), Symbol(z))
 
 required(table::Collar) = (table.holeid, table.x, table.y, table.z)
 
@@ -118,7 +118,7 @@ struct Interval{𝒯} <: MiningTable
 end
 
 Interval(table; holeid=defaultid(table), from=defaultfrom(table), to=defaultto(table)) =
-  Interval{typeof(table)}(table, holeid, from, to)
+  Interval{typeof(table)}(table, Symbol(holeid), Symbol(from), Symbol(to))
 
 required(table::Interval) = (table.holeid, table.from, table.to)
 

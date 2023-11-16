@@ -159,5 +159,4 @@ using Test
   @test DataFrame(Tables.rows(assays)) == result
   @test DataFrame(Tables.columns(assays)) == result
   @test DataFrame(assays) == result
-
 end

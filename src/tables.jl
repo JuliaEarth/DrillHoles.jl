@@ -135,31 +135,41 @@ end
 
 # helper function to find default column names
 # from a list of candidate names
-function default(table, names)
+function default(table, names, kwarg)
   cols = Tables.columns(table)
-  avail = Tables.columnnames(cols)
-  for name in names
-    if name ∈ avail
+  available = Tables.columnnames(cols)
+  augmented = augment(names)
+  for name in augmented
+    if name ∈ available
       return name
     end
   end
-  ns = join(names, ", ", " and ")
-  av = join(avail, ", ", " and ")
+  ag = join(augmented, ", ", " and ")
+  av = join(available, ", ", " and ")
   throw(ArgumentError("""\n
-                      None of the names $ns was found in table.
-                      Please specify name explicitly. Available names are $av.
+                      None of the column names $ag was found in table.
+
+                      Please specify $kwarg=... explicitly.
+
+                      Available names: $av.
                       """))
 end
 
-defaultid(table) = default(table, [:HOLEID, :holeid, :BHID, :bhid])
-defaultx(table) = default(table, [:X, :x, :XCOLLAR, :xcollar])
-defaulty(table) = default(table, [:Y, :y, :YCOLLAR, :ycollar])
-defaultz(table) = default(table, [:Z, :z, :ZCOLLAR, :zcollar])
-defaultazm(table) = default(table, [:AZIMUTH, :azimuth, :AZM, :azm, :BRG, :brg])
-defaultdip(table) = default(table, [:DIP, :dip])
-defaultat(table) = default(table, [:AT, :at, :DEPTH, :depth])
-defaultfrom(table) = default(table, [:FROM, :from])
-defaultto(table) = default(table, [:TO, :to])
+defaultid(table) = default(table, [:holeid, :bhid], :holeid)
+defaultx(table) = default(table, [:x, :xcollar], :x)
+defaulty(table) = default(table, [:y, :ycollar], :y)
+defaultz(table) = default(table, [:z, :zcollar], :z)
+defaultazm(table) = default(table, [:azimuth, :azm, :brg], :azm)
+defaultdip(table) = default(table, [:dip], :dip)
+defaultat(table) = default(table, [:at, :depth], :at)
+defaultfrom(table) = default(table, [:from], :from)
+defaultto(table) = default(table, [:to], :to)
+
+function augment(names)
+  snames = string.(names)
+  anames = [snames; uppercasefirst.(snames); uppercase.(snames)]
+  Symbol.(unique(anames))
+end
 
 # -----------
 # ASSERTIONS

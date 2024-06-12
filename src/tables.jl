@@ -156,9 +156,9 @@ function default(table, names, kwarg)
 end
 
 defaultid(table) = default(table, [:holeid, :bhid], :holeid)
-defaultx(table) = default(table, [:x, :xcollar], :x)
-defaulty(table) = default(table, [:y, :ycollar], :y)
-defaultz(table) = default(table, [:z, :zcollar], :z)
+defaultx(table) = default(table, [:x, :xcollar, :easting], :x)
+defaulty(table) = default(table, [:y, :ycollar, :northing], :y)
+defaultz(table) = default(table, [:z, :zcollar, :elevation], :z)
 defaultazm(table) = default(table, [:azimuth, :azm, :brg], :azm)
 defaultdip(table) = default(table, [:dip], :dip)
 defaultat(table) = default(table, [:at, :depth], :at)

@@ -50,7 +50,7 @@ users can manually specify the names with keyword arguments:
 
 ```julia
 # manually specify column with hole ID
-Collar(CSV.File("collar.csv"), holeid = :MYID)
+Collar(CSV.File("collar.csv"), holeid = "MyHoleID")
 ```
 
 Please check the documentation of `Collar`, `Survey` and `Interval`

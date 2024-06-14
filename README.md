@@ -56,9 +56,8 @@ Collar(CSV.File("collar.csv"), holeid = "MyHoleID")
 Please check the documentation of `Collar`, `Survey` and `Interval`
 for more details.
 
-By default, the `desurvey` function returns a
-[geospatial table](https://juliaearth.github.io/GeoStats.jl/stable/data.html)
-compatible with [GeoStats.jl](https://github.com/JuliaEarth/GeoStats.jl).
+By default, the `desurvey` function returns a `GeoTable` compatible with
+the [GeoStats.jl](https://github.com/JuliaEarth/GeoStats.jl) framework.
 It supports different dip angle conventions from open pit and underground
 mining as well as different stepping methods:
 

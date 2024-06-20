@@ -52,33 +52,23 @@ _show(io, mime, t) = show(io, mime, selection(t))
 # ----------------
 
 """
-    Survey(table; [holeid], [at], [azm], [dip])
-
-Survey table and its main columns fields.
-"""
-struct Survey{𝒯} <: MiningTable
-  table::𝒯
-  holeid::Symbol
-  at::Symbol
-  azm::Symbol
-  dip::Symbol
-
-  function Survey{𝒯}(table, holeid, at, azm, dip) where {𝒯}
-    assertspec(table, [holeid, at, azm, dip])
-    assertreal(table, [at, azm, dip])
-    new(table, holeid, at, azm, dip)
-  end
-end
-
-Survey(table; holeid=defaultid(table), at=defaultat(table), azm=defaultazm(table), dip=defaultdip(table)) =
-  Survey{typeof(table)}(table, Symbol(holeid), Symbol(at), Symbol(azm), Symbol(dip))
-
-required(table::Survey) = (table.holeid, table.at, table.azm, table.dip)
-
-"""
     Collar(table; [holeid], [x], [y], [z])
 
-Collar table and its main column fields.
+The collar `table` stores the `x`, `y`, `z` coordinates
+(usually in meters) of the head of the drill holes with
+specified `holeid`.
+
+Common column names are searched in the `table` when keyword
+arguments are ommitted.
+
+## Examples
+
+```julia
+Collar(table, holeid="BHID", x="EASTING", y="NORTHING")
+Collar(table, x="XCOLLAR", y="YCOLLAR", z="ZCOLLAR")
+```
+
+See also [`Survey`](@ref), [`Interval`](@ref).
 """
 struct Collar{𝒯} <: MiningTable
   table::𝒯
@@ -100,9 +90,63 @@ Collar(table; holeid=defaultid(table), x=defaultx(table), y=defaulty(table), z=d
 required(table::Collar) = (table.holeid, table.x, table.y, table.z)
 
 """
+    Survey(table; [holeid], [at], [azm], [dip])
+
+The survey `table` stores the `azm` and `dip` angles
+(usually in degrees) `at` each depth (usually in meters)
+along drill holes with specified `holeid`.
+
+Common column names are searched in the `table` when keyword
+arguments are ommitted.
+
+## Examples
+
+```julia
+Survey(table, holeid="BHID", at="DEPTH")
+Survey(table, azm="AZIMUTH")
+```
+
+See also [`Collar`](@ref), [`Interval`](@ref).
+"""
+struct Survey{𝒯} <: MiningTable
+  table::𝒯
+  holeid::Symbol
+  at::Symbol
+  azm::Symbol
+  dip::Symbol
+
+  function Survey{𝒯}(table, holeid, at, azm, dip) where {𝒯}
+    assertspec(table, [holeid, at, azm, dip])
+    assertreal(table, [at, azm, dip])
+    new(table, holeid, at, azm, dip)
+  end
+end
+
+Survey(table; holeid=defaultid(table), at=defaultat(table), azm=defaultazm(table), dip=defaultdip(table)) =
+  Survey{typeof(table)}(table, Symbol(holeid), Symbol(at), Symbol(azm), Symbol(dip))
+
+required(table::Survey) = (table.holeid, table.at, table.azm, table.dip)
+
+"""
     Interval(table; [holeid], [from], [to])
 
-Interval table and its main column fields.
+The interval `table` stores the interval `from` a given
+depth `to` another greater depth (usually in meters), along
+drill holes with specified `holeid`. Besides the intervals,
+the `table` stores measurements of variables such as grades,
+mineralization domains, geological interpretations, etc.
+
+Common column names are searched in the `table` when keyword
+arguments are ommitted.
+
+## Examples
+
+```julia
+Interval(table, holeid="BHID", from="START", to="FINISH")
+Interval(table, from="BEGIN", to="END")
+```
+
+See also [`Collar`](@ref), [`Survey`](@ref).
 """
 struct Interval{𝒯} <: MiningTable
   table::𝒯

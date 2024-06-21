@@ -146,14 +146,7 @@ function postprocess(table, outdip, outunit, geom, radius)
 
   # fix output units
   fixunit(x) = uconvert(outunit, x)
-  fixunits = Functional(
-    :FROM => fixunit,
-    :TO => fixunit,
-    :AT => fixunit,
-    :X => fixunit,
-    :Y => fixunit,
-    :Z => fixunit
-  )
+  fixunits = Functional(:FROM => fixunit, :TO => fixunit, :AT => fixunit, :X => fixunit, :Y => fixunit, :Z => fixunit)
 
   # discard auxiliary SOURCE information
   samples = view(table, table.SOURCE .== :INTERVAL, Not(:SOURCE))

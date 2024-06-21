@@ -145,14 +145,14 @@ function postprocess(table, outdip, outunit, geom, radius)
   outdip == :down && (table.DIP *= -1)
 
   # fix output units
-  withunit(x) = uconvert(outunit, x)
+  fixunit(x) = uconvert(outunit, x)
   fixunits = Functional(
-    :FROM => withunit,
-    :TO => withunit,
-    :AT => withunit,
-    :X => withunit,
-    :Y => withunit,
-    :Z => withunit
+    :FROM => fixunit,
+    :TO => fixunit,
+    :AT => fixunit,
+    :X => fixunit,
+    :Y => fixunit,
+    :Z => fixunit
   )
 
   # discard auxiliary SOURCE information

@@ -59,11 +59,11 @@ function desurvey(
   radius=1.0u"m"
 )
   # sanity checks
-  @assert dimension(inunit) == u"𝐋" "invalid input unit"
-  @assert dimension(outunit) == u"𝐋" "invalid output unit"
   @assert step ∈ [:arc, :tan] "invalid step method"
   @assert indip ∈ [:auto, :down, :up] "invalid input dip convention"
   @assert outdip ∈ [:down, :up] "invalid output dip convention"
+  @assert dimension(inunit) == u"𝐋" "invalid input unit"
+  @assert dimension(outunit) == u"𝐋" "invalid output unit"
 
   # pre-process input tables
   ctable, stable, itables = preprocess(collar, survey, intervals, indip, inunit)

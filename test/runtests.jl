@@ -59,7 +59,11 @@ using Test
   # changing step method only changes coordinates X, Y, Z
   dh2 = desurvey(collar, survey, [assays, lithos], step=:tan, geom=:none)
   @test isequal(dh[!, Not([:X, :Y, :Z])], dh2[!, Not([:X, :Y, :Z])])
-  @test isapprox(dh2.X, [1.0, 1.0, 1.0, 2.169263142065488, 2.4385454135333093, 2.5770334388596177] * u"m", atol=1e-5u"m")
+  @test isapprox(
+    dh2.X,
+    [1.0, 1.0, 1.0, 2.169263142065488, 2.4385454135333093, 2.5770334388596177] * u"m",
+    atol=1e-5u"m"
+  )
   @test isapprox(
     dh2.Y,
     [

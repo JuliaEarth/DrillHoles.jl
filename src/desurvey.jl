@@ -43,14 +43,26 @@ See https://help.seequent.com/Geo/2.1/en-GB/Content/drillholes/desurveying.htm
 * `:point`    - geospatial data with points
 * `:none`     - data frame with usual columns
 """
-function desurvey(collar, survey, intervals; step=:arc, indip=:auto, outdip=:down, len=nothing, geom=:point, radius=1.0)
+function desurvey(
+  collar,
+  survey,
+  intervals;
+  step=:arc,
+  indip=:auto,
+  outdip=:down,
+  inunit=u"m",
+  outunit=inunit,
+  len=nothing,
+  geom=:point,
+  radius=1.0
+)
   # sanity checks
   @assert step ∈ [:arc, :tan] "invalid step method"
   @assert indip ∈ [:auto, :down, :up] "invalid input dip convention"
   @assert outdip ∈ [:down, :up] "invalid output dip convention"
 
   # pre-process input tables
-  ctable, stable, itables = preprocess(collar, survey, intervals, indip)
+  ctable, stable, itables = preprocess(collar, survey, intervals, indip, inunit)
 
   # combine all intervals into single table and
   # assign values to sub-intervals when possible
@@ -68,10 +80,12 @@ function desurvey(collar, survey, intervals; step=:arc, indip=:auto, outdip=:dow
   result = locate(ftable, ctable, step)
 
   # post-process output table
-  postprocess(result, outdip, geom, radius)
+  postprocess(result, outdip, outunit, geom, radius)
 end
 
-function preprocess(collar, survey, intervals, indip)
+function preprocess(collar, survey, intervals, indip, inunit)
+  _aslen(x) = aslen(x, inunit)
+
   # select relevant columns of collar table and
   # standardize column names to HOLEID, X, Y, Z
   ctable = let
@@ -79,7 +93,8 @@ function preprocess(collar, survey, intervals, indip)
     f2 = Select(:HOLEID, :X, :Y, :Z)
     f3 = DropMissing()
     f4 = Coerce(:X => Continuous, :Y => Continuous, :Z => Continuous)
-    DataFrame(collar.table) |> (f1 → f2 → f3 → f4)
+    f5 = Functional(:X => _aslen, :Y => _aslen, :Z => _aslen)
+    DataFrame(collar.table) |> (f1 → f2 → f3 → f4 → f5)
   end
 
   # select relevant columns of survey table and
@@ -89,7 +104,8 @@ function preprocess(collar, survey, intervals, indip)
     f2 = Select(:HOLEID, :AT, :AZM, :DIP)
     f3 = DropMissing()
     f4 = Coerce(:AT => Continuous, :AZM => Continuous, :DIP => Continuous)
-    DataFrame(survey.table) |> (f1 → f2 → f3 → f4)
+    f5 = Functional(:AT => _aslen, :AZM => asdeg, :DIP => asdeg)
+    DataFrame(survey.table) |> (f1 → f2 → f3 → f4 → f5)
   end
 
   # flip sign of dip angle if necessary
@@ -109,19 +125,31 @@ function preprocess(collar, survey, intervals, indip)
 
   # select all columns of interval tables and
   # standardize column names to HOLEID, FROM, TO
-  itables = [
-    rename(DataFrame(interval.table), interval.holeid => :HOLEID, interval.from => :FROM, interval.to => :TO) for
-    interval in intervals
-  ]
+  itables = map(intervals) do interval
+    f1 = Rename(interval.holeid => :HOLEID, interval.from => :FROM, interval.to => :TO)
+    f2 = Functional(:FROM => _aslen, :TO => _aslen)
+    DataFrame(interval.table) |> (f1 → f2)
+  end
 
   ctable, stable, itables
 end
 
 dipguess(stable) = sum(sign, stable.DIP) > 0 ? :down : :up
 
-function postprocess(table, outdip, geom, radius)
+function postprocess(table, outdip, outunit, geom, radius)
   # flip sign of dip angle if necessary
   outdip == :down && (table.DIP *= -1)
+
+  # fix output units
+  _uconvert(x) = uconvert(outunit, x)
+  fixunits = Functional(
+    :FROM => _uconvert,
+    :TO => _uconvert,
+    :DIP => _uconvert,
+    :X => _uconvert,
+    :Y => _uconvert,
+    :Z => _uconvert
+  )
 
   # discard auxiliary SOURCE information
   samples = view(table, table.SOURCE .== :INTERVAL, Not(:SOURCE))
@@ -131,7 +159,7 @@ function postprocess(table, outdip, geom, radius)
 
   # place actual variables at the end
   cols = [:HOLEID, :FROM, :TO, :AT, :AZM, :DIP, :X, :Y, :Z]
-  holes = select(samples, cols, Not(cols))
+  holes = select(samples, cols, Not(cols)) |> fixunits
 
   # return data frame if no geometry is specified
   geom == :none && return holes

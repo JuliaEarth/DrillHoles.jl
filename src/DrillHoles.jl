@@ -5,6 +5,7 @@
 module DrillHoles
 
 using Meshes
+using Unitful
 using GeoTables
 using DataFrames
 using DataScienceTraits
@@ -19,6 +20,7 @@ const Categorical = DataScienceTraits.Categorical
 const LinearItp = Interpolations.linear_interpolation
 const LinearBC = Interpolations.Line
 
+include("units.jl")
 include("tables.jl")
 include("desurvey.jl")
 include("composite.jl")

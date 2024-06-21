@@ -5,11 +5,13 @@
 """
     desurvey(collar, survey, intervals;
              step=:arc, indip=:auto, outdip=:down,
-             len=nothing, geom=:point, radius=1.0)
+             inunit=u"m", outunit=inunit, len=nothing,
+             geom=:point, radius=1.0u"m")
 
 Desurvey drill holes based on `collar`, `survey` and `intervals` tables.
-Optionally, specify a `step` method, an input dip angle convention `indip`
-and an output dip angle convention `outdip`.
+Optionally, specify a `step` method, an input dip angle convention `indip`,
+an output dip angle convention `outdip`, an input unit `inunit` and 
+an output unit in length units.
 
 The option `len` can be used to composite samples to a given length, and
 the option `geom` can be used to specify the geometry of each sample.
@@ -43,21 +45,35 @@ See https://help.seequent.com/Geo/2.1/en-GB/Content/drillholes/desurveying.htm
 * `:point`    - geospatial data with points
 * `:none`     - data frame with usual columns
 """
-function desurvey(collar, survey, intervals; step=:arc, indip=:auto, outdip=:down, len=nothing, geom=:point, radius=1.0)
+function desurvey(
+  collar,
+  survey,
+  intervals;
+  step=:arc,
+  indip=:auto,
+  outdip=:down,
+  inunit=u"m",
+  outunit=inunit,
+  len=nothing,
+  geom=:point,
+  radius=1.0u"m"
+)
   # sanity checks
   @assert step ∈ [:arc, :tan] "invalid step method"
   @assert indip ∈ [:auto, :down, :up] "invalid input dip convention"
   @assert outdip ∈ [:down, :up] "invalid output dip convention"
+  @assert dimension(inunit) == u"𝐋" "invalid input unit"
+  @assert dimension(outunit) == u"𝐋" "invalid output unit"
 
   # pre-process input tables
-  ctable, stable, itables = preprocess(collar, survey, intervals, indip)
+  ctable, stable, itables = preprocess(collar, survey, intervals, indip, inunit)
 
   # combine all intervals into single table and
   # assign values to sub-intervals when possible
   itable = interleave(itables)
 
   # composite samples to a specified length
-  ltable = isnothing(len) ? itable : composite(itable, len)
+  ltable = isnothing(len) ? itable : composite(itable, aslen(len, u"m"))
 
   # combine composites with survey table and
   # interpolate AZM and DIP angles
@@ -68,10 +84,12 @@ function desurvey(collar, survey, intervals; step=:arc, indip=:auto, outdip=:dow
   result = locate(ftable, ctable, step)
 
   # post-process output table
-  postprocess(result, outdip, geom, radius)
+  postprocess(result, outdip, outunit, geom, aslen(radius, u"m"))
 end
 
-function preprocess(collar, survey, intervals, indip)
+function preprocess(collar, survey, intervals, indip, inunit)
+  withunit(x) = aslen(x, inunit)
+
   # select relevant columns of collar table and
   # standardize column names to HOLEID, X, Y, Z
   ctable = let
@@ -79,7 +97,8 @@ function preprocess(collar, survey, intervals, indip)
     f2 = Select(:HOLEID, :X, :Y, :Z)
     f3 = DropMissing()
     f4 = Coerce(:X => Continuous, :Y => Continuous, :Z => Continuous)
-    DataFrame(collar.table) |> (f1 → f2 → f3 → f4)
+    f5 = Functional(:X => withunit, :Y => withunit, :Z => withunit)
+    DataFrame(collar.table) |> (f1 → f2 → f3 → f4 → f5)
   end
 
   # select relevant columns of survey table and
@@ -89,7 +108,8 @@ function preprocess(collar, survey, intervals, indip)
     f2 = Select(:HOLEID, :AT, :AZM, :DIP)
     f3 = DropMissing()
     f4 = Coerce(:AT => Continuous, :AZM => Continuous, :DIP => Continuous)
-    DataFrame(survey.table) |> (f1 → f2 → f3 → f4)
+    f5 = Functional(:AT => withunit, :AZM => asdeg, :DIP => asdeg)
+    DataFrame(survey.table) |> (f1 → f2 → f3 → f4 → f5)
   end
 
   # flip sign of dip angle if necessary
@@ -109,19 +129,31 @@ function preprocess(collar, survey, intervals, indip)
 
   # select all columns of interval tables and
   # standardize column names to HOLEID, FROM, TO
-  itables = [
-    rename(DataFrame(interval.table), interval.holeid => :HOLEID, interval.from => :FROM, interval.to => :TO) for
-    interval in intervals
-  ]
+  itables = map(intervals) do interval
+    f1 = Rename(interval.holeid => :HOLEID, interval.from => :FROM, interval.to => :TO)
+    f2 = Functional(:FROM => withunit, :TO => withunit)
+    DataFrame(interval.table) |> (f1 → f2)
+  end
 
   ctable, stable, itables
 end
 
 dipguess(stable) = sum(sign, stable.DIP) > 0 ? :down : :up
 
-function postprocess(table, outdip, geom, radius)
+function postprocess(table, outdip, outunit, geom, radius)
   # flip sign of dip angle if necessary
   outdip == :down && (table.DIP *= -1)
+
+  # fix output units
+  fixunit(x) = uconvert(outunit, x)
+  fixunits = Functional(
+    :FROM => fixunit,
+    :TO => fixunit,
+    :AT => fixunit,
+    :X => fixunit,
+    :Y => fixunit,
+    :Z => fixunit
+  )
 
   # discard auxiliary SOURCE information
   samples = view(table, table.SOURCE .== :INTERVAL, Not(:SOURCE))
@@ -131,7 +163,7 @@ function postprocess(table, outdip, geom, radius)
 
   # place actual variables at the end
   cols = [:HOLEID, :FROM, :TO, :AT, :AZM, :DIP, :X, :Y, :Z]
-  holes = select(samples, cols, Not(cols))
+  holes = select(samples, cols, Not(cols)) |> fixunits
 
   # return data frame if no geometry is specified
   geom == :none && return holes
@@ -269,7 +301,7 @@ end
 function locate(attrib, ctable, method)
   # collar coordinates are at depth 0
   ctableat = copy(ctable)
-  ctableat[!, :AT] .= 0
+  ctableat[!, :AT] .= zero(eltype(attrib.AT))
 
   # join tables on hole id and depth
   table = leftjoin(attrib, ctableat, on=[:HOLEID, :AT])
@@ -328,20 +360,26 @@ end
 
 # assumes positive dip points upwards
 function arcstep(az1, dp1, az2, dp2, d12)
-  dp1, dp2 = (90.0 - dp1), (90.0 - dp2)
-  DL = acos(cosd(dp2 - dp1) - sind(dp1) * sind(dp2) * (1 - cosd(az2 - az1)))
+  dp1, dp2 = (90.0u"°" - dp1), (90.0u"°" - dp2)
+  sindp1, cosdp1 = sincos(dp1)
+  sindp2, cosdp2 = sincos(dp2)
+  sinaz1, cosaz1 = sincos(az1)
+  sinaz2, cosaz2 = sincos(az2)
+  DL = acos(cos(dp2 - dp1) - sindp1 * sindp2 * (1 - cos(az2 - az1)))
   RF = DL ≈ 0.0 ? 1.0 : 2 * tan(DL / 2) / DL
-  dx = 0.5 * d12 * (sind(dp1) * sind(az1) + sind(dp2) * sind(az2)) * RF
-  dy = 0.5 * d12 * (sind(dp1) * cosd(az1) + sind(dp2) * cosd(az2)) * RF
-  dz = 0.5 * d12 * (cosd(dp1) + cosd(dp2)) * RF
+  dx = 0.5 * d12 * (sindp1 * sinaz1 + sindp2 * sinaz2) * RF
+  dy = 0.5 * d12 * (sindp1 * cosaz1 + sindp2 * cosaz2) * RF
+  dz = 0.5 * d12 * (cosdp1 + cosdp2) * RF
   dx, dy, dz
 end
 
 # assumes positive dip points upwards
 function tanstep(az1, dp1, az2, dp2, d12)
-  dp1 = (90.0 - dp1)
-  dx = d12 * sind(dp1) * sind(az1)
-  dy = d12 * sind(dp1) * cosd(az1)
-  dz = d12 * cosd(dp1)
+  dp1 = (90.0u"°" - dp1)
+  sindp1, cosdp1 = sincos(dp1)
+  sinaz1, cosaz1 = sincos(az1)
+  dx = d12 * sindp1 * sinaz1
+  dy = d12 * sindp1 * cosaz1
+  dz = d12 * cosdp1
   dx, dy, dz
 end

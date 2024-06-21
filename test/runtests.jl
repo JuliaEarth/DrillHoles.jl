@@ -1,7 +1,7 @@
 using DrillHoles
 using DataFrames
+using Unitful
 using Meshes
-using CSV
 using Test
 
 @testset "DrillHoles.jl" begin
@@ -12,11 +12,11 @@ using Test
 
   dh = desurvey(collar, survey, [assays, lithos], geom=:none)
   @test dh.HOLEID == [1, 1, 1, 2, 2, 2]
-  @test dh.FROM ≈ [0.0, 1.0, 3.5, 0.0, 4.4, 7.0]
-  @test dh.TO ≈ [1.0, 3.5, 8.0, 4.4, 7.0, 8.0]
-  @test dh.AT ≈ [0.5, 2.25, 5.75, 2.2, 5.7, 7.5]
-  @test dh.AZM ≈ [0.1, 0.45, 1.15, 20.44, 21.14, 21.5]
-  @test dh.DIP ≈ [88.9, 88.55, 87.85, 76.56, 75.86, 75.5]
+  @test dh.FROM ≈ [0.0, 1.0, 3.5, 0.0, 4.4, 7.0] * u"m"
+  @test dh.TO ≈ [1.0, 3.5, 8.0, 4.4, 7.0, 8.0] * u"m"
+  @test dh.AT ≈ [0.5, 2.25, 5.75, 2.2, 5.7, 7.5] * u"m"
+  @test dh.AZM ≈ [0.1, 0.45, 1.15, 20.44, 21.14, 21.5] * u"°"
+  @test dh.DIP ≈ [88.9, 88.55, 87.85, 76.56, 75.86, 75.5] * u"°"
   @test isapprox(
     dh.X,
     [
@@ -26,8 +26,8 @@ using Test
       2.180003148116409,
       2.466371792847059,
       2.6136470958513938
-    ],
-    atol=1e-5
+    ] * u"m",
+    atol=1e-5u"m"
   )
   @test isapprox(
     dh.Y,
@@ -38,8 +38,8 @@ using Test
       2.4809751054874134,
       3.2461627733082983,
       3.6396878596161817
-    ],
-    atol=1e-5
+    ] * u"m",
+    atol=1e-5u"m"
   )
   @test isapprox(
     dh.Z,
@@ -50,8 +50,8 @@ using Test
       -0.1391896286156471,
       -3.5424458559587215,
       -5.292691915735159
-    ],
-    atol=1e-5
+    ] * u"m",
+    atol=1e-5u"m"
   )
   @test isequal(dh.A, [missing, 1, 2, 3, 3, missing])
   @test isequal(dh.L, ["A", "A", "A", "B", "C", "C"])
@@ -59,7 +59,7 @@ using Test
   # changing step method only changes coordinates X, Y, Z
   dh2 = desurvey(collar, survey, [assays, lithos], step=:tan, geom=:none)
   @test isequal(dh[!, Not([:X, :Y, :Z])], dh2[!, Not([:X, :Y, :Z])])
-  @test isapprox(dh2.X, [1.0, 1.0, 1.0, 2.169263142065488, 2.4385454135333093, 2.5770334388596177], atol=1e-5)
+  @test isapprox(dh2.X, [1.0, 1.0, 1.0, 2.169263142065488, 2.4385454135333093, 2.5770334388596177] * u"m", atol=1e-5u"m")
   @test isapprox(
     dh2.Y,
     [
@@ -69,8 +69,8 @@ using Test
       2.4650466607708674,
       3.204893621088157,
       3.5853863435370488
-    ],
-    atol=1e-5
+    ] * u"m",
+    atol=1e-5u"m"
   )
   @test isapprox(
     dh2.Z,
@@ -81,8 +81,8 @@ using Test
       -0.1436141425275177,
       -3.553909369275841,
       -5.307775485889264
-    ],
-    atol=1e-5
+    ] * u"m",
+    atol=1e-5u"m"
   )
 
   # point geometries by default

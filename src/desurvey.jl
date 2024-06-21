@@ -54,7 +54,7 @@ function desurvey(
   outunit=inunit,
   len=nothing,
   geom=:point,
-  radius=1.0
+  radius=1.0u"m"
 )
   # sanity checks
   @assert step ∈ [:arc, :tan] "invalid step method"
@@ -69,7 +69,7 @@ function desurvey(
   itable = interleave(itables)
 
   # composite samples to a specified length
-  ltable = isnothing(len) ? itable : composite(itable, len)
+  ltable = isnothing(len) ? itable : composite(itable, aslen(len, u"m"))
 
   # combine composites with survey table and
   # interpolate AZM and DIP angles
@@ -80,7 +80,7 @@ function desurvey(
   result = locate(ftable, ctable, step)
 
   # post-process output table
-  postprocess(result, outdip, outunit, geom, radius)
+  postprocess(result, outdip, outunit, geom, aslen(radius, u"m"))
 end
 
 function preprocess(collar, survey, intervals, indip, inunit)
@@ -145,7 +145,7 @@ function postprocess(table, outdip, outunit, geom, radius)
   fixunits = Functional(
     :FROM => _uconvert,
     :TO => _uconvert,
-    :DIP => _uconvert,
+    :AT => _uconvert,
     :X => _uconvert,
     :Y => _uconvert,
     :Z => _uconvert
@@ -297,7 +297,7 @@ end
 function locate(attrib, ctable, method)
   # collar coordinates are at depth 0
   ctableat = copy(ctable)
-  ctableat[!, :AT] .= 0
+  ctableat[!, :AT] .= zero(eltype(attrib.AT))
 
   # join tables on hole id and depth
   table = leftjoin(attrib, ctableat, on=[:HOLEID, :AT])

@@ -88,7 +88,7 @@ function desurvey(
 end
 
 function preprocess(collar, survey, intervals, indip, inunit)
-  _aslen(x) = aslen(x, inunit)
+  withunit(x) = aslen(x, inunit)
 
   # select relevant columns of collar table and
   # standardize column names to HOLEID, X, Y, Z
@@ -97,7 +97,7 @@ function preprocess(collar, survey, intervals, indip, inunit)
     f2 = Select(:HOLEID, :X, :Y, :Z)
     f3 = DropMissing()
     f4 = Coerce(:X => Continuous, :Y => Continuous, :Z => Continuous)
-    f5 = Functional(:X => _aslen, :Y => _aslen, :Z => _aslen)
+    f5 = Functional(:X => withunit, :Y => withunit, :Z => withunit)
     DataFrame(collar.table) |> (f1 → f2 → f3 → f4 → f5)
   end
 
@@ -108,7 +108,7 @@ function preprocess(collar, survey, intervals, indip, inunit)
     f2 = Select(:HOLEID, :AT, :AZM, :DIP)
     f3 = DropMissing()
     f4 = Coerce(:AT => Continuous, :AZM => Continuous, :DIP => Continuous)
-    f5 = Functional(:AT => _aslen, :AZM => asdeg, :DIP => asdeg)
+    f5 = Functional(:AT => withunit, :AZM => asdeg, :DIP => asdeg)
     DataFrame(survey.table) |> (f1 → f2 → f3 → f4 → f5)
   end
 
@@ -131,7 +131,7 @@ function preprocess(collar, survey, intervals, indip, inunit)
   # standardize column names to HOLEID, FROM, TO
   itables = map(intervals) do interval
     f1 = Rename(interval.holeid => :HOLEID, interval.from => :FROM, interval.to => :TO)
-    f2 = Functional(:FROM => _aslen, :TO => _aslen)
+    f2 = Functional(:FROM => withunit, :TO => withunit)
     DataFrame(interval.table) |> (f1 → f2)
   end
 
@@ -145,14 +145,14 @@ function postprocess(table, outdip, outunit, geom, radius)
   outdip == :down && (table.DIP *= -1)
 
   # fix output units
-  _uconvert(x) = uconvert(outunit, x)
+  withunit(x) = uconvert(outunit, x)
   fixunits = Functional(
-    :FROM => _uconvert,
-    :TO => _uconvert,
-    :AT => _uconvert,
-    :X => _uconvert,
-    :Y => _uconvert,
-    :Z => _uconvert
+    :FROM => withunit,
+    :TO => withunit,
+    :AT => withunit,
+    :X => withunit,
+    :Y => withunit,
+    :Z => withunit
   )
 
   # discard auxiliary SOURCE information

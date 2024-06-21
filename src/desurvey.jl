@@ -5,11 +5,13 @@
 """
     desurvey(collar, survey, intervals;
              step=:arc, indip=:auto, outdip=:down,
-             len=nothing, geom=:point, radius=1.0)
+             inunit=u"m", outunit=inunit, len=nothing,
+             geom=:point, radius=1.0u"m")
 
 Desurvey drill holes based on `collar`, `survey` and `intervals` tables.
-Optionally, specify a `step` method, an input dip angle convention `indip`
-and an output dip angle convention `outdip`.
+Optionally, specify a `step` method, an input dip angle convention `indip`,
+an output dip angle convention `outdip`, an input unit `inunit` and 
+an output unit in length units.
 
 The option `len` can be used to composite samples to a given length, and
 the option `geom` can be used to specify the geometry of each sample.
@@ -57,6 +59,8 @@ function desurvey(
   radius=1.0u"m"
 )
   # sanity checks
+  @assert dimension(inunit) == u"𝐋" "invalid input unit"
+  @assert dimension(outunit) == u"𝐋" "invalid output unit"
   @assert step ∈ [:arc, :tan] "invalid step method"
   @assert indip ∈ [:auto, :down, :up] "invalid input dip convention"
   @assert outdip ∈ [:down, :up] "invalid output dip convention"

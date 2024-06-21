@@ -361,19 +361,25 @@ end
 # assumes positive dip points upwards
 function arcstep(az1, dp1, az2, dp2, d12)
   dp1, dp2 = (90.0u"°" - dp1), (90.0u"°" - dp2)
-  DL = acos(cosd(dp2 - dp1) - sind(dp1) * sind(dp2) * (1 - cosd(az2 - az1)))
+  sindp1, cosdp1 = sincos(dp1)
+  sindp2, cosdp2 = sincos(dp2)
+  sinaz1, cosaz1 = sincos(az1)
+  sinaz2, cosaz2 = sincos(az2)
+  DL = acos(cos(dp2 - dp1) - sindp1 * sindp2 * (1 - cos(az2 - az1)))
   RF = DL ≈ 0.0 ? 1.0 : 2 * tan(DL / 2) / DL
-  dx = 0.5 * d12 * (sind(dp1) * sind(az1) + sind(dp2) * sind(az2)) * RF
-  dy = 0.5 * d12 * (sind(dp1) * cosd(az1) + sind(dp2) * cosd(az2)) * RF
-  dz = 0.5 * d12 * (cosd(dp1) + cosd(dp2)) * RF
+  dx = 0.5 * d12 * (sindp1 * sinaz1 + sindp2 * sinaz2) * RF
+  dy = 0.5 * d12 * (sindp1 * cosaz1 + sindp2 * cosaz2) * RF
+  dz = 0.5 * d12 * (cosdp1 + cosdp2) * RF
   dx, dy, dz
 end
 
 # assumes positive dip points upwards
 function tanstep(az1, dp1, az2, dp2, d12)
   dp1 = (90.0u"°" - dp1)
-  dx = d12 * sind(dp1) * sind(az1)
-  dy = d12 * sind(dp1) * cosd(az1)
-  dz = d12 * cosd(dp1)
+  sindp1, cosdp1 = sincos(dp1)
+  sinaz1, cosaz1 = sincos(az1)
+  dx = d12 * sindp1 * sinaz1
+  dy = d12 * sindp1 * cosaz1
+  dz = d12 * cosdp1
   dx, dy, dz
 end

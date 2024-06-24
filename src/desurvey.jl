@@ -285,7 +285,7 @@ function interpolate!(table, xcol, ycol)
   is = findall(!ismissing, ys)
   if !isempty(is)
     itp = LinearItp(xs[is], ys[is], extrapolation_bc=LinearBC())
-    @inbounds for i in 1:length(xs)
+    @inbounds Threads.@threads for i in 1:length(xs)
       ys[i] = itp(xs[i])
     end
   end

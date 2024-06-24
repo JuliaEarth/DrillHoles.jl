@@ -89,9 +89,52 @@ using Test
     atol=1e-5u"m"
   )
 
+  # input dip option
+  dh = desurvey(collar, survey, [assays, lithos], indip=:down, geom=:none)
+  @test dh.DIP ≈ [88.9, 88.55, 87.85, 76.56, 75.86, 75.5] * u"°"
+  dh = desurvey(collar, survey, [assays, lithos], indip=:up, geom=:none)
+  @test dh.DIP ≈ [-88.9, -88.55, -87.85, -76.56, -75.86, -75.5] * u"°"
+
+  # output dip option
+  dh = desurvey(collar, survey, [assays, lithos], outdip=:down, geom=:none)
+  @test dh.DIP ≈ [88.9, 88.55, 87.85, 76.56, 75.86, 75.5] * u"°"
+  dh = desurvey(collar, survey, [assays, lithos], outdip=:up, geom=:none)
+  @test dh.DIP ≈ [-88.9, -88.55, -87.85, -76.56, -75.86, -75.5] * u"°"
+
+  # input unit option
+  dh = desurvey(collar, survey, [assays, lithos], inunit=u"ft", geom=:none)
+  @test unit(eltype(dh.FROM)) == u"ft"
+  @test unit(eltype(dh.TO)) == u"ft"
+  @test unit(eltype(dh.AT)) == u"ft"
+  @test unit(eltype(dh.X)) == u"ft"
+  @test unit(eltype(dh.Y)) == u"ft"
+  @test unit(eltype(dh.Z)) == u"ft"
+
+  # output unit option
+  dh = desurvey(collar, survey, [assays, lithos], inunit=u"ft", outunit=u"m", geom=:none)
+  @test unit(eltype(dh.FROM)) == u"m"
+  @test unit(eltype(dh.TO)) == u"m"
+  @test unit(eltype(dh.AT)) == u"m"
+  @test unit(eltype(dh.X)) == u"m"
+  @test unit(eltype(dh.Y)) == u"m"
+  @test unit(eltype(dh.Z)) == u"m"
+
+  # len option
+  dh1 = desurvey(collar, survey, [assays, lithos], len=1.0, geom=:none)
+  dh2 = desurvey(collar, survey, [assays, lithos], len=1.0u"m", geom=:none)
+  @test isequal(dh1, dh2)
+
+  # radius option
+  dh1 = desurvey(collar, survey, [assays, lithos], radius=1.0, geom=:none)
+  dh2 = desurvey(collar, survey, [assays, lithos], radius=1.0u"m", geom=:none)
+  @test isequal(dh1, dh2)
+
+  # geom option
+  dh = desurvey(collar, survey, [assays, lithos], geom=:cylinder)
+  @test eltype(dh.geometry) <: Cylinder
   # point geometries by default
-  dh3 = desurvey(collar, survey, [assays, lithos])
-  @test eltype(dh3.geometry) <: Point
+  dh = desurvey(collar, survey, [assays, lithos])
+  @test eltype(dh.geometry) <: Point
 
   # guess column names
   collar = Collar(DataFrame(holeid=1:2, XCOLLAR=1:2, Y=1:2, z=1:2))

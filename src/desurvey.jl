@@ -121,7 +121,7 @@ function preprocess(collar, survey, intervals, indip, inunit)
   for hole in groupby(stable, :HOLEID)
     if size(hole, 1) == 1
       single = copy(hole)
-      single.AT .+= 1
+      single.AT .+= oneunit(eltype(single.AT))
       push!(singles, single)
     end
   end

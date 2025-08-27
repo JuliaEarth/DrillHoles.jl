@@ -1,7 +1,7 @@
 name = "DrillHoles"
 uuid = "9d36f3b5-8124-4f7e-bcda-df733105c718"
 authors = ["Rafael Caixeta and contributors"]
-version = "1.4.13"
+version = "1.5.0"
 
 [deps]
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
@@ -19,9 +19,9 @@ DataFrames = "1.1"
 DataScienceTraits = "1.0"
 GeoTables = "1.21"
 Interpolations = "0.15"
-LinearAlgebra = "1.9"
+LinearAlgebra = "1.10"
 Meshes = "0.54"
 TableTransforms = "1.35"
 Tables = "1.6"
 Unitful = "1.20"
-julia = "1.9"
+julia = "1.10"

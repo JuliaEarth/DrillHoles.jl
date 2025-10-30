@@ -73,7 +73,7 @@ function desurvey(
   itable = interleave(itables)
 
   # composite samples to a specified length
-  ltable = isnothing(len) ? itable : composite(itable, aslen(len, u"m"))
+  ltable = isnothing(len) ? itable : composite(itable, aslen(len))
 
   # combine composites with survey table and
   # interpolate AZM and DIP angles
@@ -84,11 +84,11 @@ function desurvey(
   result = locate(ftable, ctable, step)
 
   # post-process output table
-  postprocess(result, outdip, outunit, geom, aslen(radius, u"m"))
+  postprocess(result, outdip, outunit, geom, aslen(radius))
 end
 
 function preprocess(collar, survey, intervals, indip, inunit)
-  withunit(x) = aslen(x, inunit)
+  asunit(x) = withunit(x, inunit)
 
   # select relevant columns of collar table and
   # standardize column names to HOLEID, X, Y, Z
@@ -97,7 +97,7 @@ function preprocess(collar, survey, intervals, indip, inunit)
     f2 = Select(:HOLEID, :X, :Y, :Z)
     f3 = DropMissing()
     f4 = Coerce(:X => Continuous, :Y => Continuous, :Z => Continuous)
-    f5 = Functional(:X => withunit, :Y => withunit, :Z => withunit)
+    f5 = Functional(:X => asunit, :Y => asunit, :Z => asunit)
     DataFrame(collar.table) |> (f1 → f2 → f3 → f4 → f5)
   end
 
@@ -108,7 +108,7 @@ function preprocess(collar, survey, intervals, indip, inunit)
     f2 = Select(:HOLEID, :AT, :AZM, :DIP)
     f3 = DropMissing()
     f4 = Coerce(:AT => Continuous, :AZM => Continuous, :DIP => Continuous)
-    f5 = Functional(:AT => withunit, :AZM => asdeg, :DIP => asdeg)
+    f5 = Functional(:AT => asunit, :AZM => asdeg, :DIP => asdeg)
     DataFrame(survey.table) |> (f1 → f2 → f3 → f4 → f5)
   end
 
@@ -131,7 +131,7 @@ function preprocess(collar, survey, intervals, indip, inunit)
   # standardize column names to HOLEID, FROM, TO
   itables = map(intervals) do interval
     f1 = Rename(interval.holeid => :HOLEID, interval.from => :FROM, interval.to => :TO)
-    f2 = Functional(:FROM => withunit, :TO => withunit)
+    f2 = Functional(:FROM => asunit, :TO => asunit)
     DataFrame(interval.table) |> (f1 → f2)
   end
 

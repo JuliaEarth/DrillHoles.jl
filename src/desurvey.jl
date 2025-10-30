@@ -93,23 +93,21 @@ function preprocess(collar, survey, intervals, indip, inunit)
   # select relevant columns of collar table and
   # standardize column names to HOLEID, X, Y, Z
   ctable = let
-    f1 = Rename(collar.holeid => :HOLEID, collar.x => :X, collar.y => :Y, collar.z => :Z)
-    f2 = Select(:HOLEID, :X, :Y, :Z)
-    f3 = DropMissing()
-    f4 = Coerce(:X => Continuous, :Y => Continuous, :Z => Continuous)
-    f5 = Functional(:X => asunit, :Y => asunit, :Z => asunit)
-    DataFrame(collar.table) |> (f1 → f2 → f3 → f4 → f5)
+    f1 = Select(collar.holeid => :HOLEID, collar.x => :X, collar.y => :Y, collar.z => :Z)
+    f2 = DropMissing()
+    f3 = Coerce(:X => Continuous, :Y => Continuous, :Z => Continuous)
+    f4 = Functional(:X => asunit, :Y => asunit, :Z => asunit)
+    DataFrame(collar.table) |> (f1 → f2 → f3 → f4)
   end
 
   # select relevant columns of survey table and
   # standardize column names to HOLEID, AT, AZM, DIP
   stable = let
-    f1 = Rename(survey.holeid => :HOLEID, survey.at => :AT, survey.azm => :AZM, survey.dip => :DIP)
-    f2 = Select(:HOLEID, :AT, :AZM, :DIP)
-    f3 = DropMissing()
-    f4 = Coerce(:AT => Continuous, :AZM => Continuous, :DIP => Continuous)
-    f5 = Functional(:AT => asunit, :AZM => asdeg, :DIP => asdeg)
-    DataFrame(survey.table) |> (f1 → f2 → f3 → f4 → f5)
+    f1 = Select(survey.holeid => :HOLEID, survey.at => :AT, survey.azm => :AZM, survey.dip => :DIP)
+    f2 = DropMissing()
+    f3 = Coerce(:AT => Continuous, :AZM => Continuous, :DIP => Continuous)
+    f4 = Functional(:AT => asunit, :AZM => asdeg, :DIP => asdeg)
+    DataFrame(survey.table) |> (f1 → f2 → f3 → f4)
   end
 
   # flip sign of dip angle if necessary

@@ -13,8 +13,11 @@ Optionally, specify a `step` method, an input dip angle convention `indip`,
 an output dip angle convention `outdip`, an input unit `inunit` and 
 an output unit in length units.
 
-The option `len` can be used to composite samples to a given length, and
-the option `geom` can be used to specify the geometry of each sample.
+The option `len` can be used to composite samples to a given length in
+length units (default to meters).
+
+The option `geom` can be used to specify the geometry of each sample,
+which can be `:cylinder`, `:point` or `:none`.
 
 In the case of `:cylinder` geometry, the option `radius` can be used to
 specify the radius of each cylinder.

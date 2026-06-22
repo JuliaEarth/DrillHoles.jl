@@ -6,7 +6,7 @@
     desurvey(collar, survey, intervals;
              step=:arc, indip=:auto, outdip=:down,
              inunit=u"m", outunit=inunit, len=nothing,
-             geom=:point, radius=1.0u"m")
+             geom=:point, radius=23.8u"mm")
 
 Desurvey drill holes based on `collar`, `survey` and `intervals` tables.
 Optionally, specify a `step` method, an input dip angle convention `indip`,
@@ -20,12 +20,14 @@ The option `geom` can be used to specify the geometry of each sample,
 which can be `:cylinder`, `:point` or `:none`.
 
 In the case of `:cylinder` geometry, the option `radius` can be used to
-specify the radius of each cylinder.
+specify the radius of each cylinder. By default, the radius is set to
+23.8 millimeters (0.938 inches), which comes from the industry-standard
+NQ size.
 
 ## Step methods
 
 * `:arc` - spherical arc step
-* `:tan` - simple tanget step
+* `:tan` - simple tangent step
 
 See https://help.seequent.com/Geo/2.1/en-GB/Content/drillholes/desurveying.htm
 
@@ -59,7 +61,7 @@ function desurvey(
   outunit=inunit,
   len=nothing,
   geom=:point,
-  radius=1.0u"m"
+  radius=23.8u"mm"
 )
   # sanity checks
   @assert step ∈ [:arc, :tan] "invalid step method"

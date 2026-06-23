@@ -18,11 +18,16 @@ import Interpolations
 const LinearItp = Interpolations.linear_interpolation
 const LinearBC = Interpolations.Line
 
+# source code
 include("units.jl")
 include("tables.jl")
 include("desurvey.jl")
 include("composite.jl")
 
+# precompile workloads
+include("precompile.jl")
+
+# deprecation warnings
 function desurvey(collar, survey, intervals::AbstractVector; kwargs...)
   Base.depwarn(
     """

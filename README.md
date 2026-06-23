@@ -76,7 +76,7 @@ It supports different dip angle conventions from open pit and underground
 mining as well as different stepping methods:
 
 ```julia
-samples = desurvey(collar, survey, [assay, litho], options...)
+samples = desurvey(collar, survey, assay, litho, options...)
 ```
 
 The `len` option can be used for compositing samples. For example,

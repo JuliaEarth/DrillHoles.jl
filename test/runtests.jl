@@ -10,7 +10,7 @@ using Test
   assays = Interval(DataFrame(HOLEID=[1, 1, 2], FROM=[1, 3.5, 0], TO=[3.5, 8, 7], A=[1, 2, 3]))
   lithos = Interval(DataFrame(HOLEID=[1, 2, 2], FROM=[0, 0, 4.4], TO=[8, 4.4, 8], L=["A", "B", "C"]))
 
-  dh = desurvey(collar, survey, [assays, lithos], geom=:none)
+  dh = desurvey(collar, survey, assays, lithos, geom=:none)
   @test dh.HOLEID == [1, 1, 1, 2, 2, 2]
   @test dh.FROM ≈ [0.0, 1.0, 3.5, 0.0, 4.4, 7.0] * u"m"
   @test dh.TO ≈ [1.0, 3.5, 8.0, 4.4, 7.0, 8.0] * u"m"
@@ -57,7 +57,7 @@ using Test
   @test isequal(dh.L, ["A", "A", "A", "B", "C", "C"])
 
   # changing step method only changes coordinates X, Y, Z
-  dh2 = desurvey(collar, survey, [assays, lithos], step=:tan, geom=:none)
+  dh2 = desurvey(collar, survey, assays, lithos, step=:tan, geom=:none)
   @test isequal(dh[!, Not([:X, :Y, :Z])], dh2[!, Not([:X, :Y, :Z])])
   @test isapprox(
     dh2.X,
@@ -90,19 +90,19 @@ using Test
   )
 
   # input dip option
-  dh = desurvey(collar, survey, [assays, lithos], indip=:down, geom=:none)
+  dh = desurvey(collar, survey, assays, lithos, indip=:down, geom=:none)
   @test dh.DIP ≈ [88.9, 88.55, 87.85, 76.56, 75.86, 75.5] * u"°"
-  dh = desurvey(collar, survey, [assays, lithos], indip=:up, geom=:none)
+  dh = desurvey(collar, survey, assays, lithos, indip=:up, geom=:none)
   @test dh.DIP ≈ [-88.9, -88.55, -87.85, -76.56, -75.86, -75.5] * u"°"
 
   # output dip option
-  dh = desurvey(collar, survey, [assays, lithos], outdip=:down, geom=:none)
+  dh = desurvey(collar, survey, assays, lithos, outdip=:down, geom=:none)
   @test dh.DIP ≈ [88.9, 88.55, 87.85, 76.56, 75.86, 75.5] * u"°"
-  dh = desurvey(collar, survey, [assays, lithos], outdip=:up, geom=:none)
+  dh = desurvey(collar, survey, assays, lithos, outdip=:up, geom=:none)
   @test dh.DIP ≈ [-88.9, -88.55, -87.85, -76.56, -75.86, -75.5] * u"°"
 
   # input unit option
-  dh = desurvey(collar, survey, [assays, lithos], inunit=u"ft", geom=:none)
+  dh = desurvey(collar, survey, assays, lithos, inunit=u"ft", geom=:none)
   @test unit(eltype(dh.FROM)) == u"ft"
   @test unit(eltype(dh.TO)) == u"ft"
   @test unit(eltype(dh.AT)) == u"ft"
@@ -111,7 +111,7 @@ using Test
   @test unit(eltype(dh.Z)) == u"ft"
 
   # output unit option
-  dh = desurvey(collar, survey, [assays, lithos], inunit=u"ft", outunit=u"m", geom=:none)
+  dh = desurvey(collar, survey, assays, lithos, inunit=u"ft", outunit=u"m", geom=:none)
   @test unit(eltype(dh.FROM)) == u"m"
   @test unit(eltype(dh.TO)) == u"m"
   @test unit(eltype(dh.AT)) == u"m"
@@ -120,20 +120,20 @@ using Test
   @test unit(eltype(dh.Z)) == u"m"
 
   # len option
-  dh1 = desurvey(collar, survey, [assays, lithos], len=1.0, geom=:none)
-  dh2 = desurvey(collar, survey, [assays, lithos], len=1.0u"m", geom=:none)
+  dh1 = desurvey(collar, survey, assays, lithos, len=1.0, geom=:none)
+  dh2 = desurvey(collar, survey, assays, lithos, len=1.0u"m", geom=:none)
   @test isequal(dh1, dh2)
 
   # radius option
-  dh1 = desurvey(collar, survey, [assays, lithos], radius=1.0, geom=:none)
-  dh2 = desurvey(collar, survey, [assays, lithos], radius=1.0u"m", geom=:none)
+  dh1 = desurvey(collar, survey, assays, lithos, radius=1.0, geom=:none)
+  dh2 = desurvey(collar, survey, assays, lithos, radius=1.0u"m", geom=:none)
   @test isequal(dh1, dh2)
 
   # geom option
-  dh = desurvey(collar, survey, [assays, lithos], geom=:cylinder)
+  dh = desurvey(collar, survey, assays, lithos, geom=:cylinder)
   @test eltype(dh.geometry) <: Cylinder
   # point geometries by default
-  dh = desurvey(collar, survey, [assays, lithos])
+  dh = desurvey(collar, survey, assays, lithos)
   @test eltype(dh.geometry) <: Point
 
   # guess column names
@@ -153,7 +153,7 @@ using Test
   @test assays.to == :to
 
   # result has standard column names
-  dh = desurvey(collar, survey, [assays], geom=:none)
+  dh = desurvey(collar, survey, assays, geom=:none)
   @test propertynames(dh) == [:HOLEID, :FROM, :TO, :AT, :AZM, :DIP, :X, :Y, :Z, :A]
 
   # custom column names

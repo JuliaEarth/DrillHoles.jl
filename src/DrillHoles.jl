@@ -23,6 +23,19 @@ include("tables.jl")
 include("desurvey.jl")
 include("composite.jl")
 
+function desurvey(collar, survey, intervals::AbstractVector; kwargs...)
+  Base.depwarn(
+    """
+    `desurvey(collar, survey, [interval₁, interval₂, ...]; kwargs...)` is deprecated.
+
+    Use `desurvey(collar, survey, interval₁, interval₂, ...; kwargs...)` instead.
+    """,
+    :desurvey,
+    force=true
+  )
+  desurvey(collar, survey, intervals...; kwargs...)
+end
+
 export
   # types
   MiningTable,

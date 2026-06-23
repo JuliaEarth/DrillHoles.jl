@@ -3,12 +3,12 @@
 # ------------------------------------------------------------------
 
 """
-    desurvey(collar, survey, intervals;
+    desurvey(collar, survey, interval₁, interval₂, ...;
              step=:arc, indip=:auto, outdip=:down,
              inunit=u"m", outunit=inunit, len=nothing,
              geom=:point, radius=23.8u"mm")
 
-Desurvey drill holes based on `collar`, `survey` and `intervals` tables.
+Desurvey drill holes based on `collar`, `survey` and `intervalᵢ` tables.
 Optionally, specify a `step` method, an input dip angle convention `indip`,
 an output dip angle convention `outdip`, an input unit `inunit` and 
 an output unit in length units.
@@ -51,9 +51,9 @@ See https://help.seequent.com/Geo/2.1/en-GB/Content/drillholes/desurveying.htm
 * `:none`     - data frame with usual columns
 """
 function desurvey(
-  collar,
-  survey,
-  intervals;
+  collar::Collar,
+  survey::Survey,
+  intervals::Interval...;
   step=:arc,
   indip=:auto,
   outdip=:down,
@@ -64,6 +64,7 @@ function desurvey(
   radius=23.8u"mm"
 )
   # sanity checks
+  @assert length(intervals) > 0 "at least one interval table is required"
   @assert step ∈ [:arc, :tan] "invalid step method"
   @assert indip ∈ [:auto, :down, :up] "invalid input dip convention"
   @assert outdip ∈ [:down, :up] "invalid output dip convention"

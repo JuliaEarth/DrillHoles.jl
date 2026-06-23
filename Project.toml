@@ -1,6 +1,6 @@
 name = "DrillHoles"
 uuid = "9d36f3b5-8124-4f7e-bcda-df733105c718"
-version = "1.5.7"
+version = "1.6.0"
 authors = ["Rafael Caixeta and contributors"]
 
 [deps]
